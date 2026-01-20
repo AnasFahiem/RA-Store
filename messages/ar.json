@@ -1,0 +1,119 @@
+{
+    "Navbar": {
+        "shop": "المتجر",
+        "bundles": "حزم",
+        "factory": "المصنع",
+        "account": "حسابي",
+        "adminPanel": "لوحة التحكم",
+        "cart": "عربة التسوق"
+    },
+    "Admin": {
+        "dashboard": "الرئيسية",
+        "orders": "الطلبات",
+        "inventory": "المخزون",
+        "backToShop": "العودة للمتجر",
+        "exit": "خروج",
+        "panel": "لوحة التحكم",
+        "addProduct": "إضافة منتج",
+        "ordersTitle": "إدارة الطلبات",
+        "table": {
+            "product": "المنتج",
+            "category": "القسم",
+            "price": "السعر",
+            "status": "الحالة",
+            "actions": "الإجراءات",
+            "id": "رقم الطلب",
+            "customer": "العميل",
+            "date": "التاريخ",
+            "total": "الإجمالي"
+        },
+        "noProducts": "لا توجد منتجات. أضف أول منتج لك.",
+        "noOrders": "لم يتم استلام طلبات بعد."
+    },
+    "Account": {
+        "overview": "نظرة عامة",
+        "orders": "سجل الطلبات",
+        "profile": "إعدادات الملف الشخصي",
+        "welcome": "مرحباً بعودتك",
+        "customers": "العملاء",
+        "products": "المنتجات",
+        "totalOrders": "إجمالي الطلبات",
+        "revenue": "إجمالي الإيرادات",
+        "recentOrders": "الطلبات الأخيرة",
+        "noOrders": "لا توجد طلبات بعد",
+        "noRecent": "لا توجد طلبات حديثة",
+        "startShopping": "ابدأ التسوق",
+        "fullName": "الاسم الكامل",
+        "emailAddress": "البريد الإلكتروني",
+        "emailChange": "لتغيير بريدك الإلكتروني أو كلمة المرور، يرجى التواصل مع الدعم أو انتظار تحديث الإصدار الثاني.",
+        "signOut": "تسجيل الخروج"
+    },
+    "Home": {
+        "heroTitlePre": "صُنع في",
+        "heroTitleAccent": "المصنع",
+        "heroSubtitle": "معدات فاخرة. أسعار المصنع. جودة لا تُكسر.",
+        "buildBundle": "صمم حزمتك",
+        "shopAll": "تسوق الكل",
+        "featured": "منتجات مميزة",
+        "viewAllProducts": "عرض جميع المنتجات",
+        "badge1Title": "مباشرة من المصنع",
+        "badge1Text": "نمتلك خط الإنتاج. نوفر عليك 40% مقارنة بالعلامات التجارية الكبرى.",
+        "badge2Title": "ضمان مدى الحياة",
+        "badge2Text": "إذا انكسر، نستبدله. دون أسئلة.",
+        "badge3Title": "شحن سريع",
+        "badge3Text": "جميع المنتجات المتوفرة تشحن خلال 24 ساعة."
+    },
+    "Product": {
+        "addToCart": "أضف للسلة",
+        "outOfStock": "نفذت الكمية",
+        "category": "القسم",
+        "selectVariant": "اختر النوع",
+        "selectSize": "اختر المقاس",
+        "quantity": "الكمية",
+        "buyNow": "شراء الآن",
+        "secure": "عملية آمنة",
+        "shipsFrom": "تشحن من متجر RA",
+        "soldBy": "تباع بواسطة متجر RA",
+        "returnPolicy": "سياسة الاسترجاع",
+        "freeReturns": "استرجاع مجاني",
+        "inStock": "متوفر في المخزون",
+        "delivery": "التوصيل",
+        "details": "تفاصيل المنتج"
+    },
+    "Cart": {
+        "title": "عربة التسوق",
+        "empty": "عربة التسوق فارغة",
+        "startShopping": "ابدأ التسوق",
+        "total": "المجموع",
+        "checkout": "إتمام الشراء",
+        "summary": "ملخص الطلب",
+        "subtotal": "المجموع الفرعي",
+        "shipping": "الشحن",
+        "shippingNote": "يتم الحساب عند الدفع"
+    },
+    "Auth": {
+        "loginTitle": "مرحباً بعودتك",
+        "signupTitle": "إنشاء حساب",
+        "email": "البريد الإلكتروني",
+        "password": "كلمة المرور",
+        "name": "الاسم الكامل",
+        "loginButton": "تسجيل الدخول",
+        "signupButton": "إنشاء حساب",
+        "noAccount": "ليس لديك حساب؟",
+        "hasAccount": "لديك حساب بالفعل؟",
+        "createAccount": "إنشاء حساب",
+        "signIn": "تسجيل الدخول"
+    },
+    "Footer": {
+        "about": "من نحن",
+        "contact": "تواصل معنا",
+        "shipping": "سياسة الشحن",
+        "returns": "الاسترجاع",
+        "rights": "جميع الحقوق محفوظة."
+    },
+    "Common": {
+        "backToShop": "العودة للمتجر",
+        "loading": "جاري التحميل...",
+        "deleteConfirm": "هل أنت متأكد من حذف هذا المنتج؟"
+    }
+}
