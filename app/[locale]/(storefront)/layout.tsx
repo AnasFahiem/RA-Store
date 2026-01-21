@@ -1,9 +1,9 @@
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
-
 import { getSession } from "@/lib/auth/session";
-
 import { supabase } from "@/lib/supabase";
+import GymBackground from "@/components/shared/GymBackground";
+import CartSidebar from "@/components/storefront/CartSidebar";
 
 export default async function StorefrontLayout({
     children,
@@ -23,9 +23,12 @@ export default async function StorefrontLayout({
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-white">
+        <div className="min-h-screen flex flex-col relative">
+            <GymBackground />
+            {/* Navbar needs CartSidebar sibling or logic? Navbar uses context. CartSidebar uses context. They are independent. */}
             <Navbar role={session?.role} userName={userName} />
-            <main className="flex-grow">{children}</main>
+            <CartSidebar />
+            <main className="flex-grow z-10">{children}</main>
             <Footer />
         </div>
     );

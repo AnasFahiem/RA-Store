@@ -1,7 +1,9 @@
 'use client';
 
+// Force HMR Update
+
 import { useState, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { uploadImage } from '@/lib/actions/upload'; // Server Action
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 
@@ -20,27 +22,26 @@ export default function ImageUpload({ defaultImage, onImageUpload }: ImageUpload
         if (!file.type.startsWith('image/')) return;
 
         setIsUploading(true);
-        // Create a unique file name
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-        const filePath = `${fileName}`;
+        const formData = new FormData();
+        formData.append('file', file);
+
+        console.log('Client: Sending file to server action...', file.name);
 
         try {
-            const { error: uploadError } = await supabase.storage
-                .from('products')
-                .upload(filePath, file);
+            const result = await uploadImage(formData);
+            console.log('Client: Server action result:', result);
 
-            if (uploadError) throw uploadError;
+            if (result.error) {
+                throw new Error(result.error);
+            }
 
-            const { data: { publicUrl } } = supabase.storage
-                .from('products')
-                .getPublicUrl(filePath);
-
-            setPreview(publicUrl);
-            onImageUpload(publicUrl);
-        } catch (error) {
+            if (result.url) {
+                setPreview(result.url);
+                onImageUpload(result.url);
+            }
+        } catch (error: any) {
             console.error('Upload failed:', error);
-            alert('Upload failed. Please try again.');
+            alert(`Upload failed: ${error.message || 'Unknown error'}`);
         } finally {
             setIsUploading(false);
         }

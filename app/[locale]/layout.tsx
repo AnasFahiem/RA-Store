@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import "../globals.css";
 import { CartProvider } from "@/lib/context/CartContext";
+import { ThemeProvider } from "@/components/shared/ThemeProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,14 +34,21 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <body
         className={`${inter.variable} ${oswald.variable} antialiased`}
       >
         <NextIntlClientProvider messages={messages}>
-          <CartProvider>
-            {children}
-          </CartProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

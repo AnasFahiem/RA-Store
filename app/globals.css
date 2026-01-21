@@ -1,15 +1,6 @@
 @import "tailwindcss";
 
-:root {
-  --background: #0a0a0a;
-  --foreground: #ffffff;
-  --primary: #ffffff;
-  /* Keep black for primary structural elements */
-  --secondary: #1f2937;
-  --accent: #ce9f45;
-  /* RA Store Gold */
-  --muted: #9ca3af;
-}
+@variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -18,8 +9,40 @@
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
   --font-sans: var(--font-inter);
   --font-heading: var(--font-oswald);
+}
+
+:root {
+  /* Light Mode Defaults */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --primary: #000000;
+  --secondary: #e5e7eb;
+  --accent: #ce9f45;
+  --muted: #f3f4f6;
+  /* gray-100 */
+  --muted-foreground: #6b7280;
+  /* gray-500 */
+  --border: #e5e7eb;
+  /* gray-200 */
+}
+
+.dark {
+  /* Dark Mode Overrides */
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --primary: #ffffff;
+  --secondary: #1f2937;
+  --accent: #ce9f45;
+  --muted: #27272a;
+  /* zinc-800 */
+  --muted-foreground: #a1a1aa;
+  /* zinc-400 */
+  --border: #27272a;
+  /* zinc-800 */
 }
 
 body {

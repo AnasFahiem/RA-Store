@@ -52,24 +52,32 @@ export default function ProductView({ product }: { product: Product }) {
             quantity: quantity,
             variant: selectedSize || undefined,
         });
-
-        // Optional: Open cart drawer or show success
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-white text-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-background text-foreground transition-colors duration-300">
             <div className={`grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 ${isRTL ? 'lg:rtl' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
 
                 {/* LEFT: Gallery */}
                 <div className="col-span-12 lg:col-span-5">
                     <div className="sticky top-24">
                         {/* Main Image */}
-                        <div className="relative aspect-square w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200 mb-4">
+                        {/* Main Image */}
+                        <div
+                            className="relative aspect-square w-full bg-secondary/10 rounded-lg overflow-hidden border border-border mb-4 group cursor-zoom-in"
+                            onMouseMove={(e) => {
+                                const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+                                const x = ((e.clientX - left) / width) * 100;
+                                const y = ((e.clientY - top) / height) * 100;
+                                e.currentTarget.style.setProperty('--zoom-origin', `${x}% ${y}%`);
+                            }}
+                        >
                             <Image
                                 src={activeImage}
                                 alt={displayName}
                                 fill
-                                className="object-contain object-center p-4"
+                                className="object-contain object-center p-4 transition-transform duration-200 ease-out group-hover:scale-[2]"
+                                style={{ transformOrigin: 'var(--zoom-origin, 50% 50%)' }}
                                 priority
                             />
                         </div>
@@ -80,7 +88,7 @@ export default function ProductView({ product }: { product: Product }) {
                                     <button
                                         key={idx}
                                         onClick={() => setSelectedImage(idx)}
-                                        className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-accent ring-1 ring-accent' : 'border-gray-200 hover:border-gray-300'
+                                        className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-accent ring-1 ring-accent' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                                             }`}
                                     >
                                         <Image
@@ -103,97 +111,85 @@ export default function ProductView({ product }: { product: Product }) {
                             {/* Breadcrumb-ish or Category */}
                             {product.category}
                         </div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">{displayName}</h1>
+                        <h1 className="text-3xl font-bold text-foreground mb-2">{displayName}</h1>
 
-                        {/* Dummy Ratings */}
-                        <div className="flex items-center gap-2 mb-4">
-                            <div className="flex text-yellow-400">
-                                <Star className="w-4 h-4 fill-current" />
-                                <Star className="w-4 h-4 fill-current" />
-                                <Star className="w-4 h-4 fill-current" />
-                                <Star className="w-4 h-4 fill-current" />
-                                <Star className="w-4 h-4 fill-current" />
-                            </div>
-                            <span className="text-sm text-blue-600 hover:underline cursor-pointer">120 Ratings</span>
-                        </div>
-
-                        <div className="border-t border-b border-gray-100 py-4 my-2">
+                        <div className="border-t border-b border-gray-100 dark:border-gray-800 py-4 my-2">
                             <div className="flex items-baseline gap-3">
-                                <span className="text-3xl font-bold text-gray-900">{formatCurrency(product.base_price)}</span>
-                                <span className="text-sm text-gray-500">{t('inStock')}</span>
+                                <span className="text-3xl font-bold text-foreground">{formatCurrency(product.base_price)}</span>
+                                <span className="text-sm text-muted">{t('inStock')}</span>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Sizing */}
-                    {product.sizes && product.sizes.length > 0 && (
-                        <div>
-                            <div className="flex justify-between items-center mb-2">
-                                <label className="font-bold text-sm text-gray-700">{t('selectSize')}: <span className="text-accent">{selectedSize}</span></label>
+                        {/* Sizing */}
+                        {product.sizes && product.sizes.length > 0 && (
+                            <div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="font-bold text-sm text-foreground">{t('selectSize')}: <span className="text-accent">{selectedSize}</span></label>
+                                </div>
+                                <div className="flex flex-wrap gap-3">
+                                    {product.sizes.map((size) => (
+                                        <button
+                                            key={size}
+                                            onClick={() => setSelectedSize(size)}
+                                            className={`min-w-[3rem] h-10 px-3 flex items-center justify-center border rounded-md text-sm font-bold transition-all ${selectedSize === size
+                                                ? 'border-accent bg-accent text-white shadow-md transform scale-105'
+                                                : 'border-gray-300 dark:border-gray-700 bg-background text-foreground hover:border-accent hover:text-accent'
+                                                }`}
+                                        >
+                                            {size}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="flex flex-wrap gap-3">
-                                {product.sizes.map((size) => (
-                                    <button
-                                        key={size}
-                                        onClick={() => setSelectedSize(size)}
-                                        className={`min-w-[3rem] h-10 px-3 flex items-center justify-center border rounded-md text-sm font-bold transition-all ${selectedSize === size
-                                            ? 'border-accent bg-accent text-white shadow-md transform scale-105'
-                                            : 'border-gray-300 bg-white text-gray-700 hover:border-accent hover:text-accent'
-                                            }`}
-                                    >
-                                        {size}
-                                    </button>
-                                ))}
+                        )}
+
+                        {/* Description */}
+                        <div className="prose prose-sm text-muted-foreground dark:text-gray-400">
+                            <h3 className="text-sm font-bold text-foreground uppercase mb-2">{t('details')}</h3>
+                            <p className="whitespace-pre-line leading-relaxed">{displayDescription}</p>
+                        </div>
+
+                        {/* Trust Signals */}
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div className="flex items-start gap-2">
+                                <Truck className="w-5 h-5 text-accent flex-shrink-0" />
+                                <span className="text-xs text-muted-foreground">{t('shipsFrom')}</span>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Description */}
-                    <div className="prose prose-sm text-gray-600">
-                        <h3 className="text-sm font-bold text-gray-900 uppercase mb-2">{t('details')}</h3>
-                        <p className="whitespace-pre-line leading-relaxed">{displayDescription}</p>
-                    </div>
-
-                    {/* Trust Signals */}
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                        <div className="flex items-start gap-2">
-                            <Truck className="w-5 h-5 text-accent flex-shrink-0" />
-                            <span className="text-xs text-gray-500">{t('shipsFrom')}</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <ShieldCheck className="w-5 h-5 text-accent flex-shrink-0" />
-                            <span className="text-xs text-gray-500">{t('secure')}</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <Undo2 className="w-5 h-5 text-accent flex-shrink-0" />
-                            <span className="text-xs text-gray-500">{t('returnPolicy')}</span>
+                            <div className="flex items-start gap-2">
+                                <ShieldCheck className="w-5 h-5 text-accent flex-shrink-0" />
+                                <span className="text-xs text-muted-foreground">{t('secure')}</span>
+                            </div>
+                            <div className="flex items-start gap-2">
+                                <Undo2 className="w-5 h-5 text-accent flex-shrink-0" />
+                                <span className="text-xs text-muted-foreground">{t('returnPolicy')}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* RIGHT: Buy Box */}
                 <div className="col-span-12 lg:col-span-3">
-                    <div className="sticky top-24 border border-gray-200 rounded-lg p-6 shadow-sm bg-gray-50/50">
+                    <div className="sticky top-24 border border-gray-200 dark:border-gray-800 rounded-lg p-6 shadow-sm bg-gray-50/50 dark:bg-gray-900/50">
                         <div className="mb-4">
-                            <span className="text-2xl font-bold text-gray-900 block mb-1">{formatCurrency(product.base_price)}</span>
+                            <span className="text-2xl font-bold text-foreground block mb-1">{formatCurrency(product.base_price)}</span>
                             <span className="text-sm text-green-600 font-medium">{t('freeReturns')}</span>
-                            <div className="text-sm text-gray-500 mt-2">
-                                {t('delivery')} <span className="font-bold text-gray-900">Tomorrow, Jan 21</span>
+                            <div className="text-sm text-muted-foreground mt-2">
+                                {t('delivery')} <span className="font-bold text-foreground">Tomorrow, Jan 21</span>
                             </div>
                         </div>
 
                         <div className="space-y-3">
-                            <div className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded w-fit font-medium">
+                            <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 text-sm px-3 py-1 rounded w-fit font-medium">
                                 {t('inStock')}
                             </div>
 
                             {/* Quantity */}
                             <div className="flex items-center gap-2">
-                                <label className="text-sm font-medium">{t('quantity')}:</label>
+                                <label className="text-sm font-medium text-foreground">{t('quantity')}:</label>
                                 <select
                                     value={quantity}
                                     onChange={(e) => setQuantity(Number(e.target.value))}
-                                    className="border border-gray-300 rounded px-2 py-1 bg-white text-sm focus:border-accent outline-none"
+                                    className="border border-gray-300 dark:border-gray-700 rounded px-2 py-1 bg-background text-foreground text-sm focus:border-accent outline-none"
                                 >
                                     {[1, 2, 3, 4, 5, 10].map(n => (
                                         <option key={n} value={n}>{n}</option>
@@ -211,20 +207,20 @@ export default function ProductView({ product }: { product: Product }) {
 
                             <button
                                 onClick={() => { handleAddToCart(); /* Then redirect */ }}
-                                className="w-full py-3 bg-black hover:bg-zinc-800 text-white font-bold rounded-full shadow-md transition-colors border border-zinc-800"
+                                className="w-full py-3 bg-foreground hover:bg-zinc-800 dark:hover:bg-zinc-200 text-background font-bold rounded-full shadow-md transition-colors border border-foreground/10"
                             >
                                 {t('buyNow')}
                             </button>
                         </div>
 
-                        <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500 space-y-1">
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 text-xs text-muted-foreground space-y-1">
                             <div className="flex justify-between">
                                 <span>Ships from</span>
-                                <span className="font-medium text-gray-900">RA Store</span>
+                                <span className="font-medium text-foreground">RA Store</span>
                             </div>
                             <div className="flex justify-between">
                                 <span>Sold by</span>
-                                <span className="font-medium text-gray-900">RA Store</span>
+                                <span className="font-medium text-foreground">RA Store</span>
                             </div>
                         </div>
                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { uploadImage } from '@/lib/actions/upload'; // Server Action
 import { supabase } from '@/lib/supabase';
 import { Upload, X, Loader2, Star, AlertCircle, Trash2 } from 'lucide-react';
 
@@ -18,26 +19,23 @@ export default function MultiImageUpload({ defaultImages = [], onImagesChange }:
         if (!file.type.startsWith('image/')) return;
 
         setIsUploading(true);
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-        const filePath = `${fileName}`;
+        const formData = new FormData();
+        formData.append('file', file);
 
         try {
-            const { error: uploadError } = await supabase.storage
-                .from('products')
-                .upload(filePath, file);
+            const result = await uploadImage(formData);
 
-            if (uploadError) throw uploadError;
+            if (result.error) {
+                throw new Error(result.error);
+            }
 
-            const { data: { publicUrl } } = supabase.storage
-                .from('products')
-                .getPublicUrl(filePath);
-
-            const newImages = [...defaultImages, publicUrl];
-            onImagesChange(newImages);
-        } catch (error) {
+            if (result.url) {
+                const newImages = [...defaultImages, result.url];
+                onImagesChange(newImages);
+            }
+        } catch (error: any) {
             console.error('Upload failed:', error);
-            alert('Failed to upload image. Please try again.');
+            alert(`Failed to upload image: ${error.message || 'Unknown error'}`);
         } finally {
             setIsUploading(false);
         }
@@ -159,8 +157,8 @@ export default function MultiImageUpload({ defaultImages = [], onImagesChange }:
                                     type="button"
                                     onClick={() => setAsMain(index)}
                                     className={`p-2 rounded-lg backdrop-blur-md transition-all ${index === 0
-                                            ? 'bg-accent text-black shadow-lg shadow-accent/20'
-                                            : 'bg-white/10 text-white hover:bg-white/20'
+                                        ? 'bg-accent text-black shadow-lg shadow-accent/20'
+                                        : 'bg-white/10 text-white hover:bg-white/20'
                                         }`}
                                     title={index === 0 ? "Main Image" : "Set as Main"}
                                 >

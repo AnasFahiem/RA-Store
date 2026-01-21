@@ -114,10 +114,10 @@ export default async function Home() {
       </section>
 
       {/* Featured Products */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-background transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold font-heading uppercase tracking-wide text-gray-900">{t('featured')}</h2>
+            <h2 className="text-4xl font-bold font-heading uppercase tracking-wide text-foreground">{t('featured')}</h2>
             <div className="h-1 w-24 bg-accent mx-auto mt-4" />
           </div>
 
@@ -128,7 +128,7 @@ export default async function Home() {
           </div>
 
           <div className="mt-16 text-center">
-            <Link href="/products" className="inline-block border-b-2 border-black pb-1 text-lg font-bold uppercase tracking-wide hover:text-accent hover:border-accent transition-colors">
+            <Link href="/products" className="inline-block border-b-2 border-foreground pb-1 text-lg font-bold uppercase tracking-wide hover:text-accent hover:border-accent transition-colors text-foreground">
               {t('viewAllProducts')}
             </Link>
           </div>
@@ -136,20 +136,20 @@ export default async function Home() {
       </section>
 
       {/* Trust Badges */}
-      <section className="py-20 bg-gray-50 border-t border-gray-200">
+      <section className="py-20 bg-secondary/10 border-t border-border transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
             <div>
-              <h3 className="text-2xl font-bold font-heading uppercase mb-2">{t('badge1Title')}</h3>
-              <p className="text-gray-500">{t('badge1Text')}</p>
+              <h3 className="text-2xl font-bold font-heading uppercase mb-2 text-foreground">{t('badge1Title')}</h3>
+              <p className="text-muted-foreground">{t('badge1Text')}</p>
             </div>
             <div>
-              <h3 className="text-2xl font-bold font-heading uppercase mb-2">{t('badge2Title')}</h3>
-              <p className="text-gray-500">{t('badge2Text')}</p>
+              <h3 className="text-2xl font-bold font-heading uppercase mb-2 text-foreground">{t('badge2Title')}</h3>
+              <p className="text-muted-foreground">{t('badge2Text')}</p>
             </div>
             <div>
-              <h3 className="text-2xl font-bold font-heading uppercase mb-2">{t('badge3Title')}</h3>
-              <p className="text-gray-500">{t('badge3Text')}</p>
+              <h3 className="text-2xl font-bold font-heading uppercase mb-2 text-foreground">{t('badge3Title')}</h3>
+              <p className="text-muted-foreground">{t('badge3Text')}</p>
             </div>
           </div>
         </div>
