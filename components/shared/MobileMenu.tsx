@@ -62,11 +62,13 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="fixed top-0 right-0 h-full w-72 z-[101] flex flex-col shadow-2xl"
-                        style={{ backgroundColor: '#09090b' }}
+                        className="fixed top-0 right-0 h-full w-72 z-[101] flex flex-col shadow-2xl overflow-hidden"
                     >
+                        {/* Solid Background - absolutely positioned */}
+                        <div className="absolute inset-0 bg-black" style={{ backgroundColor: '#000000' }} />
+
                         {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-white/10">
+                        <div className="relative flex items-center justify-between p-4 border-b border-white/10 bg-zinc-900">
                             <span className="text-lg font-bold font-heading uppercase tracking-wider text-white">
                                 Menu
                             </span>
@@ -79,7 +81,7 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                         </div>
 
                         {/* Navigation Links */}
-                        <nav className="flex-1 p-4 space-y-2">
+                        <nav className="relative flex-1 p-4 space-y-2 bg-zinc-900">
                             {navLinks.map((link) => {
                                 const Icon = link.icon;
                                 const isActive = pathname === link.href ||
@@ -116,7 +118,7 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                         </nav>
 
                         {/* Footer */}
-                        <div className="p-4 border-t border-white/10">
+                        <div className="relative p-4 border-t border-white/10 bg-zinc-900">
                             <p className="text-xs text-gray-500 text-center">
                                 © 2024 RA Store
                             </p>
