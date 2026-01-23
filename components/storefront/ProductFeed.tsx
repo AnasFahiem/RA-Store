@@ -1,7 +1,5 @@
 'use client';
 
-'use client';
-
 import { useState, useMemo } from 'react';
 import ProductCard from './ProductCard';
 import BundleCard from './BundleCard';
@@ -102,8 +100,8 @@ export default function ProductFeed({ products, bundles }: ProductFeedProps) {
             <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center py-2">
 
                 {/* Categories - Horizontal Scroll */}
-                <div className="w-full md:w-auto overflow-x-auto no-scrollbar">
-                    <div className="flex gap-2">
+                <div className="w-full md:w-auto overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <div className="flex gap-2 min-w-max">
                         {categories.map((cat) => (
                             <button
                                 key={cat}
