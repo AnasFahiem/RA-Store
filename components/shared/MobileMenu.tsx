@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { X, Home, ShoppingBag, Package, Factory, Shield } from 'lucide-react';
 import { Link, usePathname } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
@@ -42,6 +42,8 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
 
     const isAdmin = role === 'admin' || role === 'owner';
 
+    if (!isOpen) return null;
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -56,19 +58,24 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                         onClick={onClose}
                     />
 
-                    {/* Sidebar */}
-                    <motion.div
+                    {/* Sidebar - Simple solid background approach */}
+                    <motion.aside
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="fixed top-0 right-0 h-full w-72 z-[101] flex flex-col shadow-2xl overflow-hidden"
+                        className="fixed top-0 right-0 bottom-0 w-72 z-[101] shadow-2xl"
+                        style={{
+                            backgroundColor: '#18181b',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}
                     >
-                        {/* Solid Background - absolutely positioned at z-0 */}
-                        <div className="absolute inset-0 z-0" style={{ backgroundColor: '#18181b' }} />
-
-                        {/* Header - z-10 to be above background */}
-                        <div className="relative z-10 flex items-center justify-between p-4 border-b border-white/10">
+                        {/* Header */}
+                        <div
+                            className="flex items-center justify-between p-4 border-b border-white/10"
+                            style={{ backgroundColor: '#18181b' }}
+                        >
                             <span className="text-lg font-bold font-heading uppercase tracking-wider text-white">
                                 Menu
                             </span>
@@ -80,8 +87,11 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                             </button>
                         </div>
 
-                        {/* Navigation Links - z-10 to be above background */}
-                        <nav className="relative z-10 flex-1 p-4 space-y-2 overflow-y-auto">
+                        {/* Navigation Links */}
+                        <nav
+                            className="flex-1 p-4 space-y-2 overflow-y-auto"
+                            style={{ backgroundColor: '#18181b' }}
+                        >
                             {navLinks.map((link) => {
                                 const Icon = link.icon;
                                 const isActive = pathname === link.href ||
@@ -93,7 +103,7 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                                         href={link.href}
                                         className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${isActive
                                             ? 'bg-accent text-white'
-                                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                            : 'text-gray-300 hover:bg-white/10 hover:text-white'
                                             }`}
                                     >
                                         <Icon className="h-5 w-5" />
@@ -117,13 +127,16 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                             )}
                         </nav>
 
-                        {/* Footer - z-10 to be above background */}
-                        <div className="relative z-10 p-4 border-t border-white/10">
+                        {/* Footer */}
+                        <div
+                            className="p-4 border-t border-white/10"
+                            style={{ backgroundColor: '#18181b' }}
+                        >
                             <p className="text-xs text-gray-500 text-center">
                                 © 2024 RA Store
                             </p>
                         </div>
-                    </motion.div>
+                    </motion.aside>
                 </>
             )}
         </AnimatePresence>
