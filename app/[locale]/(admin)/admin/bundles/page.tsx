@@ -1,8 +1,9 @@
 import { getDiscountRules, getAdminBundles } from '@/lib/actions/bundleActions';
 import { formatCurrency } from '@/lib/utils/format';
-import { Plus, Tag, Layers } from 'lucide-react';
+import { Plus, Tag, Layers, Edit } from 'lucide-react';
 import { Link } from '@/lib/navigation';
 import { getTranslations } from 'next-intl/server';
+import { DeleteBundleButton } from './delete-button';
 
 export default async function BundlesPage() {
     // These will fail if DB tables don't exist, so we handle gracefully or show error if empty
@@ -91,12 +92,22 @@ export default async function BundlesPage() {
                                     </ul>
                                 </div>
 
-                                <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-baseline">
+                                <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
                                     {bundle.price_override ? (
                                         <span className="text-accent font-bold text-lg">{formatCurrency(bundle.price_override)}</span>
                                     ) : (
                                         <span className="text-gray-500 text-sm">{t('calculatedPrice')}</span>
                                     )}
+                                    <div className="flex items-center gap-1">
+                                        <Link
+                                            href={`/admin/bundles/${bundle.id}/edit`}
+                                            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+                                            title="Edit Bundle"
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Link>
+                                        <DeleteBundleButton bundleId={bundle.id} />
+                                    </div>
                                 </div>
                             </div>
                         ))}

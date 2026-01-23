@@ -115,6 +115,91 @@ export async function createBundle(formData: any) {
     return { success: true, bundleId: bundle.id };
 }
 
+export async function deleteBundle(bundleId: string) {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    // First delete bundle items
+    await supabaseAdmin
+        .from('bundle_items')
+        .delete()
+        .eq('bundle_id', bundleId);
+
+    // Then delete bundle
+    const { error } = await supabaseAdmin
+        .from('bundles')
+        .delete()
+        .eq('id', bundleId);
+
+    if (error) {
+        console.error('deleteBundle error:', error);
+        return { success: false, error: 'Failed to delete bundle' };
+    }
+
+    revalidatePath('/admin/bundles');
+    revalidatePath('/bundler');
+    return { success: true };
+}
+
+export async function updateBundle(bundleId: string, formData: any) {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    const result = BundleSchema.safeParse(formData);
+    if (!result.success) {
+        return { success: false, error: 'Invalid data' };
+    }
+
+    const { name, description, items, priceOverride } = result.data;
+
+    // Update bundle
+    const { error: bundleError } = await supabaseAdmin
+        .from('bundles')
+        .update({
+            name,
+            description,
+            image: result.data.image,
+            price_override: priceOverride
+        })
+        .eq('id', bundleId);
+
+    if (bundleError) {
+        console.error('updateBundle error:', bundleError);
+        return { success: false, error: 'Failed to update bundle' };
+    }
+
+    // Delete old items and insert new ones
+    await supabaseAdmin
+        .from('bundle_items')
+        .delete()
+        .eq('bundle_id', bundleId);
+
+    if (items.length > 0) {
+        const bundleItems = items.map((item: any) => ({
+            bundle_id: bundleId,
+            product_id: item.productId,
+            quantity: item.quantity
+        }));
+
+        const { error: itemsError } = await supabaseAdmin
+            .from('bundle_items')
+            .insert(bundleItems);
+
+        if (itemsError) {
+            console.error('updateBundle items error:', itemsError);
+            return { success: false, error: 'Failed to update bundle items' };
+        }
+    }
+
+    revalidatePath('/bundler');
+    revalidatePath('/admin/bundles');
+    return { success: true };
+}
+
 export async function createDiscountRule(formData: any) {
     const session = await getSession();
     if (session?.role !== 'admin' && session?.role !== 'owner') {
