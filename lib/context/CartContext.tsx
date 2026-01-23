@@ -17,6 +17,7 @@ type CartItem = {
     productId: string;
     quantity: number;
     variant?: string;
+    price?: number;
     // UI only fields
     name?: string;
     image?: string;
@@ -38,6 +39,7 @@ type CartContextType = {
     subtotal: number;
     isCartOpen: boolean;
     openCart: () => void;
+    closeCart: () => void;
     isLoading: boolean;
     user: any;
     refreshCart: () => Promise<void>;

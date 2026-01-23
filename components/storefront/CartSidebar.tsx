@@ -86,7 +86,7 @@ export default function CartSidebar() {
                                             {standaloneItems.map((item) => (
                                                 <div key={`${item.productId}-${item.variant}`} className="flex gap-4 group">
                                                     <div className="relative w-24 h-24 bg-card/50 rounded-lg overflow-hidden flex-shrink-0 border border-border/50">
-                                                        <Image src={item.image} alt={item.name} fill className="object-cover" />
+                                                        <Image src={item.image || '/placeholder.jpg'} alt={item.name || 'Product'} fill className="object-cover" />
                                                     </div>
                                                     <div className="flex-1 flex flex-col justify-between py-1">
                                                         <div>
@@ -104,7 +104,7 @@ export default function CartSidebar() {
                                                                 <span className="px-3 text-sm font-bold text-foreground">{item.quantity}</span>
                                                                 <button onClick={() => updateQuantity(item.productId, item.variant, 1)} className="p-2 hover:bg-accent/10 text-muted-foreground hover:text-accent"><Plus className="w-3 h-3" /></button>
                                                             </div>
-                                                            <span className="font-bold text-accent">{formatCurrency(item.price * item.quantity)}</span>
+                                                            <span className="font-bold text-accent">{formatCurrency((item.price || 0) * item.quantity)}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -150,7 +150,7 @@ export default function CartSidebar() {
                                                                     <div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-accent/10 rounded-full"></div>
 
                                                                     <div className="relative w-16 h-16 bg-card/30 rounded-lg overflow-hidden flex-shrink-0 border border-border/20 group-hover:border-accent/40 transition-colors">
-                                                                        <Image src={item.image} alt={item.name} fill className="object-cover" />
+                                                                        <Image src={item.image || '/placeholder.jpg'} alt={item.name || 'Product'} fill className="object-cover" />
                                                                     </div>
 
                                                                     <div className="flex-1 flex flex-col justify-between py-1">

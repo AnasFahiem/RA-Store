@@ -52,7 +52,6 @@ export async function getCartAction() {
             price: item.products?.base_price || 0,
             image: item.products?.images?.[0] || '/placeholder.jpg',
             quantity: item.quantity,
-            quantity: item.quantity,
             variant: item.variant,
             bundleId: item.bundle_id,
             bundleDetails: item.bundles ? {

@@ -7,16 +7,19 @@ import { logout } from '@/lib/actions/auth';
 
 export default async function AccountLayout({
     children,
+    params
 }: {
     children: React.ReactNode;
+    params: Promise<{ locale: string }>;
 }) {
+    const { locale } = await params;
     const t = await getTranslations('Account');
     const tNav = await getTranslations('Navbar');
     const tCommon = await getTranslations('Common');
     const session = await verifySession();
 
     if (!session) {
-        redirect('/auth/login');
+        redirect({ href: '/auth/login', locale });
     }
 
     return (
