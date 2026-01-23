@@ -112,18 +112,19 @@ export async function updateProduct(productId: string, prevState: any, formData:
         return { error: 'Unauthorized' };
     }
 
-    const result = productSchema.safeParse(Object.fromEntries(formData));
+    // LOGGING FOR DEBUG
+    console.log('[updateProduct] Product ID:', productId);
+    const rawData = Object.fromEntries(formData);
+    console.log('[updateProduct] Raw Form Data (Partial):', { ...rawData, images: '...truncated...', sizes: rawData.sizes });
+
+    const result = productSchema.safeParse(rawData);
 
     if (!result.success) {
-        console.error(result.error);
-        return { error: 'Invalid inputs' };
+        console.error('[updateProduct] Validation Failed:', result.error);
+        return { error: 'Invalid inputs: ' + result.error.issues.map(i => i.message).join(', ') };
     }
 
     const { name, name_ar, description, description_ar, base_price, category, sizes } = result.data;
-
-    // LOGGING FOR DEBUG
-    console.log('Update Product ID:', productId);
-    console.log('Raw Images Input:', result.data.images);
 
     // Parse images from JSON string
     let parsedImages: string[] = [];
@@ -132,17 +133,19 @@ export async function updateProduct(productId: string, prevState: any, formData:
             parsedImages = JSON.parse(result.data.images);
         }
     } catch (e) {
-        console.error('Failed to parse images', e);
+        console.error('[updateProduct] Failed to parse images', e);
     }
+
+    console.log('[updateProduct] Parsed Images Length:', parsedImages.length);
 
     let parsedSizes: string[] = [];
     try {
         if (sizes) parsedSizes = JSON.parse(sizes);
     } catch (e) {
-        console.error('Failed to parse sizes', e);
+        console.error('[updateProduct] Failed to parse sizes', e);
     }
 
-    const { error } = await supabase
+    const { data: updateData, error, count } = await supabase
         .from('products')
         .update({
             name,
@@ -154,12 +157,15 @@ export async function updateProduct(productId: string, prevState: any, formData:
             images: parsedImages, // Save the array
             sizes: parsedSizes
         })
-        .eq('id', productId);
+        .eq('id', productId)
+        .select();
 
     if (error) {
-        console.error('Update Product Error:', error);
+        console.error('[updateProduct] DB Update Error:', error);
         return { error: error.message };
     }
+
+    console.log('[updateProduct] Success. Rows updated:', count, 'Data:', updateData);
 
     redirect('/admin/inventory');
 }
