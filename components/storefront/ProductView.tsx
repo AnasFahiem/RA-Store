@@ -60,7 +60,7 @@ export default function ProductView({ product }: { product: Product }) {
 
                 {/* LEFT: Gallery */}
                 <div className="col-span-12 lg:col-span-5">
-                    <div className="sticky top-24">
+                    <div className="lg:sticky lg:top-24">
                         {/* Main Image */}
                         {/* Main Image */}
                         <div
