@@ -78,12 +78,12 @@ export default function ProductCard({ id, name, name_ar, price, image, category,
                 <div>
                     <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider">{category}</p>
                     <Link href={`/products/${id}`}>
-                        <h3 className="text-lg font-bold text-foreground font-heading uppercase tracking-wide hover:text-accent transition-colors">
+                        <h3 className="text-base sm:text-lg font-bold text-foreground font-heading uppercase tracking-wide hover:text-accent transition-colors">
                             {displayName}
                         </h3>
                     </Link>
                 </div>
-                <p className="text-lg font-bold text-accent">{formatCurrency(price)}</p>
+                <p className="text-base sm:text-lg font-bold text-accent">{formatCurrency(price)}</p>
             </div>
 
             {variants && variants.length > 0 && (

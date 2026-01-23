@@ -1,21 +1,91 @@
 {
+    "Bundler": {
+        "title": "صمم مجموعتك",
+        "subtitle": "اختر المنتجات لمجموعتك الخاصة. كلما أضفت أكثر، وفرت أكثر!",
+        "description": "أنشئ مجموعتك الخاصة ووفر الكثير مع الخصومات المتزايدة.",
+        "selectProducts": "اختر المنتجات",
+        "suggestionsTitle": "بناءً على اختيارك",
+        "addToBundle": "أضف للمجموعة",
+        "add": "أضف",
+        "yourBundle": "مجموعتك",
+        "emptyBundle": "مجموعتك فارغة.",
+        "subtotal": "المجموع الفرعي",
+        "total": "الإجمالي",
+        "discount": "الخصم",
+        "addToCart": "أضف المجموعة للسلة",
+        "creatingBundle": "جاري إنشاء المجموعة...",
+        "addItemsUnlock": "أضف منتجات لفتح الخصومات",
+        "itemsCount": "{count} عناصر",
+        "goal": "الهدف: {count}",
+        "addMoreForDiscount": "أضف {count} عناصر إضافية للحصول على خصم أكبر!",
+        "discountActiveTags": {
+            "percentage": "خصم {value}% مفعل!",
+            "fixed": "خصم {value} مفعل!"
+        },
+        "bundleLabel": "حزمة",
+        "inStock": "متوفر في المخزون",
+        "includedInBundle": "محتويات الحزمة",
+        "quantity": "الكمية",
+        "freeShipping": "شحن مجاني",
+        "secureCheckout": "دفع آمن",
+        "officialGear": "معدات أصلية"
+    },
     "Navbar": {
         "shop": "المتجر",
         "bundles": "حزم",
         "factory": "المصنع",
         "account": "حسابي",
         "adminPanel": "لوحة التحكم",
-        "cart": "عربة التسوق"
+        "cart": "عربة التسوق",
+        "auth": {
+            "logout": "تسجيل الخروج",
+            "signin": "تسجيل الدخول"
+        }
     },
     "Admin": {
-        "dashboard": "الرئيسية",
+        "dashboard": {
+            "label": "الرئيسية",
+            "title": "نظرة عامة",
+            "revenue": "إجمالي الإيرادات",
+            "orders": "إجمالي الطلبات",
+            "products": "المنتجات",
+            "customers": "العملاء",
+            "chartPlaceholder": "الرسوم البيانية للتحليلات قادمة في الإصدار الثاني"
+        },
+        "bundles": "الحزم",
+        "users": "المستخدمين",
         "orders": "الطلبات",
         "inventory": "المخزون",
         "backToShop": "العودة للمتجر",
         "exit": "خروج",
+        "loading": "جاري التحميل...",
+        "heroSlider": "إدارة سلايدر الهيرو",
+        "addNewSlide": "إضافة شريحة جديدة",
+        "addingSlide": "جاري إضافة الشريحة...",
+        "currentSlides": "الشرائح الحالية",
+        "noSlides": "لم يتم إضافة شرائح بعد. سيتم استخدام الخلفية الافتراضية.",
+        "order": "الترتيب: {order}",
+        "moveUp": "تحريك لأعلى",
+        "moveDown": "تحريك لأسفل",
+        "delete": "حذف",
+        "confirmDelete": "هل أنت متأكد من حذف هذه الشريحة؟",
+        "failedAdd": "فشل إضافة الشريحة",
+        "failedDelete": "فشل حذف الشريحة",
         "panel": "لوحة التحكم",
         "addProduct": "إضافة منتج",
         "ordersTitle": "إدارة الطلبات",
+        "bundlesTitle": "الحزم والخصومات",
+        "usersTitle": "إدارة المستخدمين",
+        "discountRules": "قواعد الخصم",
+        "addRule": "إضافة قاعدة",
+        "noRules": "لا توجد قواعد خصم نشطة.",
+        "preMadeBundles": "حزم جاهزة (المتجر)",
+        "createBundle": "إنشاء حزمة",
+        "noBundles": "لا توجد حزم جاهزة.",
+        "items": "العناصر",
+        "calculatedPrice": "السعر المحسوب",
+        "off": "خصم",
+        "minQty": "أقل كمية: {qty}",
         "table": {
             "product": "المنتج",
             "category": "القسم",
@@ -25,7 +95,11 @@
             "id": "رقم الطلب",
             "customer": "العميل",
             "date": "التاريخ",
-            "total": "الإجمالي"
+            "total": "الإجمالي",
+            "createdAt": "تاريخ الإنشاء",
+            "role": "الصلاحية",
+            "email": "البريد الإلكتروني",
+            "name": "الاسم"
         },
         "noProducts": "لا توجد منتجات. أضف أول منتج لك.",
         "noOrders": "لم يتم استلام طلبات بعد."
@@ -78,6 +152,7 @@
         "freeReturns": "استرجاع مجاني",
         "inStock": "متوفر في المخزون",
         "delivery": "التوصيل",
+        "deliveryDate": "غداً، 21 يناير",
         "details": "تفاصيل المنتج"
     },
     "Cart": {
@@ -104,16 +179,45 @@
         "createAccount": "إنشاء حساب",
         "signIn": "تسجيل الدخول"
     },
+    "Products": {
+        "title": "جميع المنتجات",
+        "description": "معدات رياضية للمحترفين. تصفح مجموعتنا من الإكسسوارات والمعدات عالية الجودة."
+    },
     "Footer": {
         "about": "من نحن",
         "contact": "تواصل معنا",
-        "shipping": "سياسة الشحن",
+        "shipping": "الشحن والاسترجاع",
         "returns": "الاسترجاع",
-        "rights": "جميع الحقوق محفوظة."
+        "rights": "مصنع جيم جير. جميع الحقوق محفوظة.",
+        "support": "الدعم",
+        "sizeGuide": "دليل المقاسات",
+        "badges": {
+            "factory": {
+                "title": "مباشرة من المصنع",
+                "description": "معدات رياضية فاخرة نصنعها بأنفسنا ونبيعها لك مباشرة. لا وسطاء، فقط جودة ومتانة."
+            }
+        }
     },
     "Common": {
         "backToShop": "العودة للمتجر",
         "loading": "جاري التحميل...",
         "deleteConfirm": "هل أنت متأكد من حذف هذا المنتج؟"
+    },
+    "Store": {
+        "sort": {
+            "label": "ترتيب",
+            "featured": "المميزة",
+            "priceLowHigh": "السعر: من الأقل للأعلى",
+            "priceHighLow": "السعر: من الأعلى للأقل",
+            "nameAZ": "الاسم: أ-ي",
+            "nameZA": "الاسم: ي-أ"
+        },
+        "categories": {
+            "all": "الكل",
+            "bundles": "الحزم",
+            "gloves": "قفازات",
+            "accessories": "إكسسوارات",
+            "wraps": "أربطة"
+        }
     }
 }

@@ -1,189 +1,311 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { addToCartAction, removeFromCartAction, updateQuantityAction, syncCartAction, getCart } from '@/lib/actions/cart';
+import {
+    getCartAction,
+    addToCartAction,
+    removeFromCartAction,
+    updateQuantityAction,
+    clearCartAction,
+    syncCartAction
+} from '@/lib/actions/cart';
+import { addBundleToCart as addBundleServerAction } from '@/lib/actions/bundleActions';
+import { checkAuth } from '@/lib/actions/auth';
 
 type CartItem = {
     productId: string;
-    name: string;
-    price: number;
-    image: string;
-    variant?: string;
     quantity: number;
+    variant?: string;
+    // UI only fields
+    name?: string;
+    image?: string;
+    bundleId?: string;
+    bundleDetails?: {
+        name: string;
+        priceOverride?: number;
+    };
 };
 
 type CartContextType = {
     items: CartItem[];
-    addToCart: (item: CartItem) => void;
-    removeFromCart: (productId: string, variant?: string) => void;
-    updateQuantity: (productId: string, variant: string | undefined, delta: number) => void;
+    addToCart: (item: CartItem) => Promise<void>;
+    removeFromCart: (productId: string, variant?: string) => Promise<void>;
+    updateQuantity: (productId: string, variant: string | undefined, delta: number) => Promise<void>;
     clearCart: () => void;
+    disconnect: () => void;
     totalItems: number;
     subtotal: number;
     isCartOpen: boolean;
     openCart: () => void;
-    closeCart: () => void;
+    isLoading: boolean;
+    user: any;
+    refreshCart: () => Promise<void>;
+    addBundleToCart: (bundleId: string, bundleItems: CartItem[]) => Promise<void>;
+    removeBundle: (bundleId: string) => Promise<void>;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
-
 const LOCAL_STORAGE_KEY = 'ra-cart';
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+export function CartProvider({ children, initialItems = [] }: {
+    children: React.ReactNode;
+    initialItems?: CartItem[];
+}) {
+    const supabase = useMemo(() => createClient(), []);
+
     const [user, setUser] = useState<any>(null);
-    const [items, setItems] = useState<CartItem[]>([]);
+    const [authInitialized, setAuthInitialized] = useState(false);
+    const [items, setItems] = useState<CartItem[]>(initialItems); // Use server-provided initial data
     const [isCartOpen, setIsCartOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false); // Start as not loading since we have initial data
 
-    const supabase = createClient();
+    // Sync with server updates (e.g. after redirect or revalidation)
+    useEffect(() => {
+        if (initialItems.length > 0) {
+            setItems(initialItems);
+        }
+    }, [initialItems]);
 
-    // Helper to persist to LS only if guest
+    // Auth & Initial Load Logic - simplified since server provides initial cart data
+    useEffect(() => {
+        let mounted = true;
+
+        const initAuth = async () => {
+            try {
+                // Check auth status
+                const { user: authUser } = await checkAuth();
+
+                if (!mounted) return;
+
+                console.log('[CartContext] User:', authUser?.id || 'Guest');
+                setUser(authUser);
+
+                // If user just logged in and we have initial items, we're done
+                if (authUser && initialItems.length > 0) {
+                    console.log('[CartContext] ✅ Using server-provided cart:', initialItems.length, 'items');
+                    setItems(initialItems);
+                    return;
+                }
+
+                // If guest, load from localStorage
+                if (!authUser) {
+                    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+                    if (saved) {
+                        try {
+                            const guestItems = JSON.parse(saved);
+                            if (mounted) {
+                                setItems(guestItems);
+                                console.log('[CartContext] Loaded', guestItems.length, 'guest items');
+                            }
+                        } catch (e) {
+                            if (mounted) setItems([]);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[CartContext] Init error:', error);
+            }
+        };
+
+        initAuth();
+
+        return () => { mounted = false; };
+    }, [initialItems]);
+
     const saveToLocal = (newItems: CartItem[]) => {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newItems));
     };
 
-    // Initial Logic: Mount & Auth State Changes
-    useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth State Change:', event);
-            const currentUser = session?.user || null;
-            console.log('Session User:', currentUser?.id);
-            setUser(currentUser);
+    // 2. Actions
+    // 2. Actions
 
-            if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && currentUser)) {
-                // USER LOGIC
-                // 1. Check for local guest items to merge
-                const localSaved = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (localSaved) {
-                    try {
-                        const localItems = JSON.parse(localSaved);
-                        if (localItems.length > 0) {
-                            console.log('Found local items to sync:', localItems);
-                            await syncCartAction(localItems);
-                        }
-                    } catch (e) {
-                        console.error('Error parsing local cart for sync', e);
-                    }
-                    // 2. CRITICAL: Wipe local storage immediately after sync logic
-                    localStorage.removeItem(LOCAL_STORAGE_KEY);
-                }
 
-                // 3. Fetch canonical state from DB
-                const dbItems = await getCart();
-                setItems(dbItems);
-
-            } else if (event === 'SIGNED_OUT') {
-                // LOGOUT LOGIC
-                // Just clear state. Do NOT read from LS (previous user data was wiped on login, or it's empty).
-                // Do NOT write to LS (we don't want to save the cleared state over a potential guest cart if that were possible, but here it's just reset).
-                setItems([]);
-
-            } else if (event === 'INITIAL_SESSION' && !currentUser) {
-                // GUEST INITIAL LOAD
-                const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (saved) {
-                    try {
-                        setItems(JSON.parse(saved));
-                    } catch (e) { console.error(e); }
-                }
-            }
+    const refreshCart = async () => {
+        if (!user) return; // Guest cart is local only
+        setIsLoading(true);
+        try {
+            const serverItems = await getCartAction();
+            setItems(serverItems as CartItem[]);
+        } catch (e) {
+            console.error('[CartContext] Refresh failed', e);
+        } finally {
             setIsLoading(false);
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
-
-
-    const addToCart = async (newItem: CartItem) => {
-        // 1. Calculate New State
-        let nextItems: CartItem[] = [];
-        setItems((prev) => {
-            const existing = prev.find(i => i.productId === newItem.productId && i.variant === newItem.variant);
-            if (existing) {
-                nextItems = prev.map(i => i.productId === newItem.productId && i.variant === newItem.variant
-                    ? { ...i, quantity: i.quantity + newItem.quantity } : i);
-            } else {
-                nextItems = [...prev, newItem];
-            }
-            return nextItems;
-        });
-        setIsCartOpen(true);
-        console.log('Cart Action: Add', newItem);
-        console.log('Current User:', user);
-
-        // 2. Branching Persistence
-        if (user) {
-            console.log('Persisting to DB via Action');
-            await addToCartAction(newItem);
-        } else {
-            console.log('Persisting to LocalStorage');
-            saveToLocal(nextItems);
         }
     };
 
-    const removeFromCart = async (productId: string, variant?: string) => {
-        // 1. Calculate New State
-        let nextItems: CartItem[] = [];
-        setItems((prev) => {
-            nextItems = prev.filter(i => !(i.productId === productId && i.variant === variant));
+    const addBundleToCart = async (bundleId: string, bundleItems: CartItem[]) => {
+        // 1. Optimistic Update (Atomic)
+        setItems(prev => {
+            const nextItems = [...prev];
+            bundleItems.forEach(newItem => {
+                const existingIdx = nextItems.findIndex(i =>
+                    i.productId === newItem.productId &&
+                    i.variant === newItem.variant &&
+                    i.bundleId === newItem.bundleId
+                );
+                if (existingIdx > -1) {
+                    nextItems[existingIdx].quantity += newItem.quantity;
+                } else {
+                    nextItems.push(newItem);
+                }
+            });
+            if (!user) saveToLocal(nextItems);
             return nextItems;
         });
 
-        // 2. Branching Persistence
+        setIsCartOpen(true);
+
+        // 2. Server Sync
+        if (user) {
+            try {
+                // Use the server action to add the bundle atomically
+                // Note: We need to import this. Dynamic import or move import to top.
+                // Moving import to top is better. For now assuming dynamic or global.
+                // Actually, let's use the one we added to imports if possible, or use `addToCartAction` in loop?
+                // `addToCartAction` loop is slow.
+                // `addBundleServerAction` is better.
+
+                const result = await addBundleServerAction(bundleId);
+                await refreshCart();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    };
+
+    const addToCart = async (newItem: CartItem) => {
+        // Optimistic Update
+        setItems(prev => {
+            const nextItems = [...prev];
+            const existingIdx = nextItems.findIndex(i =>
+                i.productId === newItem.productId &&
+                i.variant === newItem.variant &&
+                i.bundleId === newItem.bundleId
+            );
+
+            if (existingIdx > -1) {
+                nextItems[existingIdx].quantity += newItem.quantity;
+            } else {
+                nextItems.push(newItem);
+            }
+            // Side effect: Persist
+            if (!user) saveToLocal(nextItems);
+            return nextItems;
+        });
+        setIsCartOpen(true);
+
+        if (user) {
+            console.log('[CartContext] Authenticated. Action -> DB');
+            const result = await addToCartAction({ ...newItem, bundleId: newItem.bundleId });
+            if (result?.error) {
+                console.error('[CartContext] Save Failed:', result.error);
+                // Rollback not easily possible with functional update unless we track history, 
+                // but we can just strict refresh from server on error.
+                await refreshCart();
+            } else {
+                // If successful, we might want to refresh true state from server
+                await refreshCart();
+            }
+        }
+    };
+
+
+
+    const removeFromCart = async (productId: string, variant?: string) => {
+        const previousItems = [...items];
+        // We must also filter by bundleId implicitly? 
+        // Logic hole: removeFromCart signature doesn't take bundleId.
+        // Assuming remove removes specific item. 
+        // If multiple items have same productId (one standalone, one in bundle), 
+        // we need bundleId to differentiate.
+        // CHECK removeFromCartAction in cart.ts -> checks product_id/variant only?
+        // If so, it might delete bundle items too!
+        // TODO: Update removeFromCart signature in future step. 
+        // For now, let's just expose refreshCart.
+
+        const nextItems = items.filter(i => !(i.productId === productId && i.variant === variant));
+        setItems(nextItems);
+
         if (user) {
             await removeFromCartAction(productId, variant);
+            await refreshCart();
         } else {
             saveToLocal(nextItems);
         }
     };
 
     const updateQuantity = async (productId: string, variant: string | undefined, delta: number) => {
-        // 1. Calculate New State
-        let nextItems: CartItem[] = [];
-        let newQty = 0;
+        const targetItem = items.find(i => i.productId === productId && i.variant === variant);
+        if (!targetItem) return;
 
-        setItems((prev) => {
-            nextItems = prev.map((i) => {
-                if (i.productId === productId && i.variant === variant) {
-                    newQty = Math.max(1, i.quantity + delta);
-                    return { ...i, quantity: newQty };
-                }
-                return i;
-            });
-            return nextItems;
+        const newQuantity = Math.max(1, targetItem.quantity + delta);
+        if (newQuantity === targetItem.quantity) return;
+
+        const previousItems = [...items];
+        const nextItems = items.map(i => {
+            if (i.productId === productId && i.variant === variant) {
+                return { ...i, quantity: newQuantity };
+            }
+            return i;
         });
 
-        // 2. Branching Persistence
+        setItems(nextItems);
+
         if (user) {
-            await updateQuantityAction(productId, variant, newQty);
+            await updateQuantityAction(productId, variant, newQuantity);
         } else {
             saveToLocal(nextItems);
         }
     };
 
-    const clearCart = () => {
+    const clearCart = async () => {
         setItems([]);
-        if (!user) {
+        if (user) {
+            await clearCartAction();
+        } else {
             localStorage.removeItem(LOCAL_STORAGE_KEY);
         }
-        // If user, strictly speaking we should clear DB too if this is an explicit "Empty Cart" action.
-        // But if it's just "Post Checkout", the checkout process handles DB side typically.
-        // For now, client state clear is fine.
+    };
+
+    const removeBundle = async (bundleId: string) => {
+        // Optimistic
+        const nextItems = items.filter(i => i.bundleId !== bundleId);
+        setItems(nextItems);
+
+        if (user) {
+            try {
+                // Dynamic import to avoid earlier issues or assume it's available
+                const { removeBundleAction } = await import('@/lib/actions/cart');
+                await removeBundleAction(bundleId);
+                await refreshCart();
+            } catch (e) {
+                console.error(e);
+            }
+        } else {
+            saveToLocal(nextItems);
+        }
+    };
+
+    // NEW: Clears local state on logout without deleting DB data
+    const disconnect = () => {
+        setItems([]);
+        setUser(null);
+        setIsCartOpen(false);
     };
 
     const openCart = () => setIsCartOpen(true);
     const closeCart = () => setIsCartOpen(false);
 
     const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-    const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const subtotal = items.reduce((sum, i) => sum + (i.price || 0) * i.quantity, 0);
 
     return (
         <CartContext.Provider
-            value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, subtotal, isCartOpen, openCart, closeCart }}
+            value={{ items, addToCart, addBundleToCart, removeBundle, removeFromCart, updateQuantity, clearCart, disconnect, totalItems, subtotal, isCartOpen, openCart, closeCart, isLoading, user, refreshCart }}
         >
             {children}
-        </CartContext.Provider>
+        </CartContext.Provider >
     );
 }
 

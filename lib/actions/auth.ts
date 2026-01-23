@@ -45,6 +45,7 @@ export async function login(prevState: any, formData: FormData) {
     }
 
     await createSession(user.id, user.role);
+
     redirect('/');
 }
 
@@ -92,6 +93,21 @@ export async function signup(prevState: any, formData: FormData) {
 }
 
 export async function logout() {
+    // 1. Invalidate Supabase Session
+    const supabase = await import('@/lib/supabase/server').then(m => m.createClient());
+    await supabase.auth.signOut();
+
+    // 2. Clear Internal Session
     await deleteSession();
+
     redirect('/');
+}
+
+export async function checkAuth() {
+    const { getSession } = await import('@/lib/auth/session');
+    const session = await getSession(); // Safe, no redirect
+    if (session?.userId) {
+        return { user: { id: session.userId, role: session.role } };
+    }
+    return { user: null };
 }

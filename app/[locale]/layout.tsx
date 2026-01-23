@@ -5,6 +5,7 @@ import { getMessages } from 'next-intl/server';
 import "../globals.css";
 import { CartProvider } from "@/lib/context/CartContext";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
+import { getCartAction } from "@/lib/actions/cart";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,6 +34,9 @@ export default async function RootLayout({
   const { locale } = await params;
   const messages = await getMessages();
 
+  // Fetch cart data server-side for logged-in users
+  const initialCartItems = await getCartAction();
+
   return (
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <body
@@ -45,7 +49,7 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <CartProvider>
+            <CartProvider initialItems={initialCartItems}>
               {children}
             </CartProvider>
           </ThemeProvider>

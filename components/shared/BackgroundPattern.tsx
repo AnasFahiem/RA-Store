@@ -2,7 +2,7 @@
 
 export default function BackgroundPattern() {
     return (
-        <div className="fixed inset-0 z-[-1] pointer-events-none opacity-[0.05] overflow-hidden" aria-hidden="true">
+        <div className="fixed inset-0 z-[-1] pointer-events-none opacity-10 dark:opacity-[0.05] overflow-hidden" aria-hidden="true">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <pattern id="gym-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">

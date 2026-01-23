@@ -19,19 +19,34 @@ export default function ImageUpload({ defaultImage, onImageUpload }: ImageUpload
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFile = async (file: File) => {
-        if (!file.type.startsWith('image/')) return;
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            return;
+        }
+
+        // Check file size (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('File size too large. Maximum size is 10MB.');
+            return;
+        }
 
         setIsUploading(true);
         const formData = new FormData();
         formData.append('file', file);
 
-        console.log('Client: Sending file to server action...', file.name);
+        console.log('Client: Sending file to server action...', file.name, file.size);
 
         try {
             const result = await uploadImage(formData);
             console.log('Client: Server action result:', result);
 
             if (result.error) {
+                // Specific handling for common errors
+                if (result.error.includes('Payload Too Large')) {
+                    alert('Server rejected file size. Please try a smaller image.');
+                } else {
+                    alert(`Upload failed: ${result.error}`);
+                }
                 throw new Error(result.error);
             }
 
@@ -41,7 +56,10 @@ export default function ImageUpload({ defaultImage, onImageUpload }: ImageUpload
             }
         } catch (error: any) {
             console.error('Upload failed:', error);
-            alert(`Upload failed: ${error.message || 'Unknown error'}`);
+            // Alert is already handled above for server errors, but catch network/system errors
+            if (!error.message.includes('Upload failed')) {
+                alert(`System Error: ${error.message || 'Unknown error'}`);
+            }
         } finally {
             setIsUploading(false);
         }

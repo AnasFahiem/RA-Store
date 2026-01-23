@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { Package, Truck, CheckCircle, AlertCircle } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
+import { formatCurrency } from '@/lib/utils/format';
 
 async function getAllOrders() {
     const { data: orders, error } = await supabase
@@ -43,8 +44,12 @@ export default async function AdminOrdersPage() {
                                     #{order.id.slice(0, 8)}
                                 </td>
                                 <td className="px-6 py-4">
-                                    <div className="text-white font-medium">{order.users?.name || 'Unknown'}</div>
-                                    <div className="text-xs text-gray-500">{order.users?.email}</div>
+                                    <div className="text-white font-medium">
+                                        {(order.shipping_address as any)?.name || order.users?.name || 'Guest'}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                        {(order.shipping_address as any)?.email || order.users?.email}
+                                    </div>
                                 </td>
                                 <td className="px-6 py-4 text-gray-400">
                                     {new Date(order.created_at).toLocaleDateString()}
@@ -61,7 +66,7 @@ export default async function AdminOrdersPage() {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 font-bold text-accent">
-                                    ${order.total_amount}
+                                    {formatCurrency(order.total_amount)}
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <Link href={`/admin/orders/${order.id}`} className="text-sm text-indigo-400 hover:text-indigo-300">

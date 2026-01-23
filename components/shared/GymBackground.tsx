@@ -55,12 +55,12 @@ export default function GymBackground() {
                         transform: `translate(-50%, -50%) rotate(${rotate}deg) scale(${scale})`,
                     }}
                 >
-                    <Icon strokeWidth={1.5} className="w-16 h-16 sm:w-24 sm:h-24 opacity-10 dark:opacity-20" />
+                    <Icon strokeWidth={1.5} className="w-16 h-16 sm:w-24 sm:h-24 opacity-20 dark:opacity-20" />
                 </div>
             ))}
 
             {/* Subtle Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/40 to-background/90" />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/20 to-background/80" />
         </div>
     );
 }

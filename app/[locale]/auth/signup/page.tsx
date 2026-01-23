@@ -1,15 +1,40 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { signup } from '@/lib/actions/auth';
 import { Link } from '@/lib/navigation';
-import { Loader2, ArrowRight, User, Lock, Mail } from 'lucide-react';
+import { Loader2, ArrowRight, User, Lock, Mail, Eye, EyeOff, Check } from 'lucide-react';
+import { motion, useAnimation } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import BackgroundPattern from '@/components/shared/BackgroundPattern';
 
 export default function SignupPage() {
     const [state, action, isPending] = useActionState(signup, null);
     const t = useTranslations('Auth');
+    const [showPassword, setShowPassword] = useState(false);
+    const [password, setPassword] = useState('');
+    const controls = useAnimation();
+    const [hasTyped, setHasTyped] = useState(false);
+
+    // Password requirements
+    const requirements = [
+        { label: 'At least 6 characters', valid: password.length >= 6 },
+        { label: 'At least one uppercase letter', valid: /[A-Z]/.test(password) },
+        { label: 'At least one number', valid: /[0-9]/.test(password) },
+        { label: 'At least one special character', valid: /[^A-Za-z0-9]/.test(password) },
+    ];
+
+    const isPasswordValid = requirements.every(r => r.valid);
+
+    // Trigger shake animation when there is an error
+    useEffect(() => {
+        if (state?.error) {
+            controls.start({
+                x: [0, -10, 10, -10, 10, 0],
+                transition: { duration: 0.5 }
+            });
+        }
+    }, [state?.error, controls]);
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
@@ -20,17 +45,20 @@ export default function SignupPage() {
             <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
 
             <div className="max-w-md w-full relative z-10">
-                <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl">
+                <motion.div
+                    animate={controls}
+                    className="bg-card backdrop-blur-xl border border-border p-8 rounded-2xl shadow-2xl"
+                >
                     <div className="text-center mb-8">
                         <Link href="/" className="inline-block mb-6 group">
-                            <h1 className="text-4xl font-bold font-heading uppercase tracking-tighter text-white group-hover:text-accent transition-colors">
+                            <h1 className="text-4xl font-bold font-heading uppercase tracking-tighter text-foreground group-hover:text-accent transition-colors">
                                 RA STORE
                             </h1>
                         </Link>
-                        <h2 className="text-2xl font-bold text-white mb-2">
+                        <h2 className="text-2xl font-bold text-foreground mb-2">
                             Join the Factory
                         </h2>
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-muted-foreground text-sm">
                             Create your account and start your journey
                         </p>
                     </div>
@@ -41,7 +69,7 @@ export default function SignupPage() {
                                 <label htmlFor="name" className="sr-only">Full Name</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <User className="h-5 w-5 text-gray-400" />
+                                        <User className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
                                     </div>
                                     <input
                                         id="name"
@@ -49,7 +77,10 @@ export default function SignupPage() {
                                         type="text"
                                         autoComplete="name"
                                         required
-                                        className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-lg leading-5 bg-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent sm:text-sm transition-all"
+                                        className={`block w-full pl-10 pr-3 py-3 border rounded-lg leading-5 bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 sm:text-sm transition-all ${state?.error
+                                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-border focus:ring-accent focus:border-accent'
+                                            }`}
                                         placeholder="Full Name"
                                     />
                                 </div>
@@ -58,7 +89,7 @@ export default function SignupPage() {
                                 <label htmlFor="email" className="sr-only">Email</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Mail className="h-5 w-5 text-gray-400" />
+                                        <Mail className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
                                     </div>
                                     <input
                                         id="email"
@@ -66,7 +97,10 @@ export default function SignupPage() {
                                         type="email"
                                         autoComplete="email"
                                         required
-                                        className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-lg leading-5 bg-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent sm:text-sm transition-all"
+                                        className={`block w-full pl-10 pr-3 py-3 border rounded-lg leading-5 bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 sm:text-sm transition-all ${state?.error
+                                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-border focus:ring-accent focus:border-accent'
+                                            }`}
                                         placeholder="Email Address"
                                     />
                                 </div>
@@ -75,17 +109,50 @@ export default function SignupPage() {
                                 <label htmlFor="password" className="sr-only">Password</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-gray-400" />
+                                        <Lock className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
                                     </div>
                                     <input
                                         id="password"
                                         name="password"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         autoComplete="new-password"
                                         required
-                                        className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-lg leading-5 bg-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent sm:text-sm transition-all"
-                                        placeholder="Password (min. 6 chars)"
+                                        value={password}
+                                        onChange={(e) => {
+                                            setPassword(e.target.value);
+                                            setHasTyped(true);
+                                        }}
+                                        className={`block w-full pl-10 pr-10 py-3 border rounded-lg leading-5 bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 sm:text-sm transition-all ${(state?.error || (hasTyped && !isPasswordValid))
+                                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-border focus:ring-accent focus:border-accent'
+                                            }`}
+                                        placeholder="Password"
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-5 w-5" />
+                                        ) : (
+                                            <Eye className="h-5 w-5" />
+                                        )}
+                                    </button>
+                                </div>
+
+                                {/* Password Requirements */}
+                                <div className="mt-3 space-y-1 text-xs">
+                                    {requirements.map((req, index) => (
+                                        <div key={index} className={`flex items-center gap-2 ${req.valid ? 'text-green-500' : 'text-muted-foreground'}`}>
+                                            {req.valid ? (
+                                                <Check className="h-3 w-3" />
+                                            ) : (
+                                                <div className="h-1.5 w-1.5 rounded-full bg-muted" />
+                                            )}
+                                            <span>{req.label}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -113,14 +180,14 @@ export default function SignupPage() {
                     </form>
 
                     <div className="mt-8 text-center">
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                             Already have an account?{' '}
-                            <Link href="/auth/login" className="font-bold text-white hover:text-accent transition-colors">
+                            <Link href="/auth/login" className="font-bold text-foreground hover:text-accent transition-colors">
                                 Sign In
                             </Link>
                         </p>
                     </div>
-                </div>
+                </motion.div>
             </div>
         </div>
     );

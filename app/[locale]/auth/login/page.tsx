@@ -1,15 +1,28 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { login } from '@/lib/actions/auth';
 import { Link } from '@/lib/navigation';
-import { Loader2, ArrowRight, User, Lock } from 'lucide-react';
+import { Loader2, ArrowRight, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { motion, useAnimation } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import BackgroundPattern from '@/components/shared/BackgroundPattern';
 
 export default function LoginPage() {
     const [state, action, isPending] = useActionState(login, null);
     const t = useTranslations('Auth');
+    const [showPassword, setShowPassword] = useState(false);
+    const controls = useAnimation();
+
+    // Trigger shake animation when there is an error
+    useEffect(() => {
+        if (state?.error) {
+            controls.start({
+                x: [0, -10, 10, -10, 10, 0],
+                transition: { duration: 0.5 }
+            });
+        }
+    }, [state?.error, controls]);
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
@@ -20,28 +33,38 @@ export default function LoginPage() {
             <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
 
             <div className="max-w-md w-full relative z-10">
-                <div className="bg-black/40 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl">
+                <motion.div
+                    animate={controls}
+                    className="bg-card backdrop-blur-xl border border-border p-8 rounded-2xl shadow-2xl"
+                >
                     <div className="text-center mb-8">
                         <Link href="/" className="inline-block mb-6 group">
-                            <h1 className="text-4xl font-bold font-heading uppercase tracking-tighter text-white group-hover:text-accent transition-colors">
+                            <h1 className="text-4xl font-bold font-heading uppercase tracking-tighter text-foreground group-hover:text-accent transition-colors">
                                 RA STORE
                             </h1>
                         </Link>
-                        <h2 className="text-2xl font-bold text-white mb-2">
+                        <h2 className="text-2xl font-bold text-foreground mb-2">
                             Welcome Back
                         </h2>
-                        <p className="text-gray-400 text-sm">
+                        <p className="text-muted-foreground text-sm">
                             Enter your credentials to access your account
                         </p>
                     </div>
 
-                    <form action={action} className="space-y-6">
+                    <form
+                        action={action}
+                        className="space-y-6"
+                        onSubmit={() => {
+                            // Signal that login is happening - cart should refresh after redirect
+                            localStorage.setItem('cart_refresh_trigger', Date.now().toString());
+                        }}
+                    >
                         <div className="space-y-4">
                             <div>
                                 <label htmlFor="email" className="sr-only">Email</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <User className="h-5 w-5 text-gray-400" />
+                                        <User className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
                                     </div>
                                     <input
                                         id="email"
@@ -49,7 +72,10 @@ export default function LoginPage() {
                                         type="email"
                                         autoComplete="email"
                                         required
-                                        className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-lg leading-5 bg-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent sm:text-sm transition-all"
+                                        className={`block w-full pl-10 pr-3 py-3 border rounded-lg leading-5 bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 sm:text-sm transition-all ${state?.error
+                                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-border focus:ring-accent focus:border-accent'
+                                            }`}
                                         placeholder="Email Address"
                                     />
                                 </div>
@@ -58,17 +84,31 @@ export default function LoginPage() {
                                 <label htmlFor="password" className="sr-only">Password</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-gray-400" />
+                                        <Lock className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
                                     </div>
                                     <input
                                         id="password"
                                         name="password"
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         autoComplete="current-password"
                                         required
-                                        className="block w-full pl-10 pr-3 py-3 border border-white/10 rounded-lg leading-5 bg-white/5 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent sm:text-sm transition-all"
+                                        className={`block w-full pl-10 pr-10 py-3 border rounded-lg leading-5 bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 sm:text-sm transition-all ${state?.error
+                                            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-border focus:ring-accent focus:border-accent'
+                                            }`}
                                         placeholder="Password"
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-5 w-5" />
+                                        ) : (
+                                            <Eye className="h-5 w-5" />
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -96,14 +136,14 @@ export default function LoginPage() {
                     </form>
 
                     <div className="mt-8 text-center">
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                             Don't have an account?{' '}
-                            <Link href="/auth/signup" className="font-bold text-white hover:text-accent transition-colors">
+                            <Link href="/auth/signup" className="font-bold text-foreground hover:text-accent transition-colors">
                                 Create one here
                             </Link>
                         </p>
                     </div>
-                </div>
+                </motion.div>
             </div>
         </div>
     );

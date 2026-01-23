@@ -1,192 +1,257 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { getSession } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
-type CartItem = {
-    productId: string;
-    variant?: string; // Size
-    quantity: number;
-};
+export async function getCartAction() {
+    try {
+        console.log('[ServerAction] getCartAction: Starting...');
+        const session = await getSession();
 
-export async function getCart() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+        if (!session?.userId) {
+            console.log('[ServerAction] getCartAction: No Session Found');
+            return [];
+        }
 
-    if (!user) return [];
+        console.log('[ServerAction] getCartAction: User Found:', session.userId);
 
-    const { data, error } = await supabase
-        .from('cart_items')
-        .select(`
-            product_id,
-            quantity,
-            variant,
-            products (
-                name,
-                base_price,
-                images
-            )
-        `)
-        .eq('user_id', user.id);
+        const supabase = createAdminClient();
 
-    if (error) {
-        console.error('Error fetching cart:', error);
+        const { data, error } = await supabase
+            .from('cart_items')
+            .select(`
+                product_id,
+                quantity,
+                variant,
+                bundle_id,
+                products (
+                    name,
+                    base_price,
+                    images
+                ),
+                bundles (
+                    id,
+                    name,
+                    price_override
+                )
+            `)
+            .eq('user_id', session.userId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('[ServerAction] getCartAction: DB Error:', error);
+            return [];
+        }
+
+        console.log('[ServerAction] getCartAction: Items Found:', data?.length);
+
+        return data.map((item: any) => ({
+            productId: item.product_id,
+            name: item.products?.name || 'Unknown Product',
+            price: item.products?.base_price || 0,
+            image: item.products?.images?.[0] || '/placeholder.jpg',
+            quantity: item.quantity,
+            quantity: item.quantity,
+            variant: item.variant,
+            bundleId: item.bundle_id,
+            bundleDetails: item.bundles ? {
+                name: item.bundles.name,
+                priceOverride: item.bundles.price_override
+            } : undefined
+        }));
+    } catch (error) {
+        console.error('Get Cart Exception:', error);
         return [];
     }
-
-    // Map to CartContext structure
-    return data.map((item: any) => ({
-        productId: item.product_id,
-        name: item.products.name,
-        price: item.products.base_price,
-        image: item.products.images?.[0] || '/placeholder.jpg',
-        quantity: item.quantity,
-        variant: item.variant,
-    }));
 }
 
-export async function addToCartAction(item: CartItem) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+export async function addToCartAction(item: { productId: string; quantity: number; variant?: string; bundleId?: string }) {
+    try {
+        const session = await getSession();
+        if (!session?.userId) return { error: 'Not authenticated' };
 
-    if (!user) return { error: 'Not authenticated' };
+        const supabase = createAdminClient();
 
-    // Check if item exists to update quantity, or simple upsert?
-    // Unique constraint logic: UNIQUE(user_id, product_id, variant)
-    // We can use UPSERT logic. But standard upsert in Supabase (Postgrest) requires ignoring duplicate key, 
-    // but here we want to increment quantity if exists.
-    // Easier to fetch first or write a specific SQL function.
-    // Let's use basic check-then-update logic for now or ON CONFLICT UPDATE if we can constructing data right.
+        console.log(`[ServerAction] AddToCart: User ${session.userId}, Product ${item.productId}, Bundle ${item.bundleId || 'N/A'}`);
 
-    // Actually, SQL `ON CONFLICT` is best. 
-    // Supabase JS .upsert() handles this if we define the conflict columns.
+        // If bundleId is present, we skip the RPC as it likely doesn't support the new column yet.
+        // We use direct Upsert instead.
+        if (!item.bundleId) {
+            // Use RPC or Upsert via Admin Client
+            // Schema: handle_admin_add_to_cart(p_user_id, p_product_id, p_quantity, p_variant)
+            const { error } = await supabase.rpc('handle_admin_add_to_cart', {
+                p_user_id: session.userId,
+                p_product_id: item.productId,
+                p_quantity: item.quantity,
+                p_variant: item.variant || null
+            });
 
-    // BUT we want to *increment* quantity, not just replace it?
-    // Client usually sends "new" total quantity? No, usually +1.
-    // Context sends `item`. Context `addToCart` calculates new total locally.
-    // IF we trust client to send the FINAL quantity, upsert is fine.
-    // IF we act like "add 1", we need logic.
-    // The `CartContext` `addToCart` calculates `existing.quantity + newItem.quantity`. 
-    // So the client knows the intended TOTAL.
-    // So we can just UPSERT the `item.quantity` passed from client logic (after client calculation).
+            if (!error) {
+                revalidatePath('/');
+                return { success: true };
+            }
+            console.warn('[ServerAction] RPC Failed, trying Admin Upsert:', error);
+        }
 
-    // Wait, the action `addToCartAction` might be called with just the delta? 
-    // No, let's design `syncCartItem` essentially.
+        // Fallback to Upsert (or primary path if bundleId is set)
 
-    const { error } = await supabase
-        .from('cart_items')
-        .upsert({
-            user_id: user.id,
-            product_id: item.productId,
-            variant: item.variant || null,
-            quantity: item.quantity
-        }, {
-            onConflict: 'user_id,product_id,variant'
-        });
+        // NOTE: Basic Upsert overwrites quantity. We accept this as fallback.
+        const { error: upsertError } = await supabase
+            .from('cart_items')
+            .upsert({
+                user_id: session.userId,
+                product_id: item.productId,
+                quantity: item.quantity,
+                variant: item.variant || null,
+                bundle_id: item.bundleId || null
+            }, {
+                onConflict: 'user_id,product_id,variant,bundle_id'
+            });
 
-    if (error) {
-        console.error('Error adding to cart:', error);
-        return { error: error.message };
+        if (upsertError) {
+            console.error('[ServerAction] Upsert Failed:', upsertError);
+            throw new Error(`DB Error: ${upsertError.message}`);
+        }
+
+        revalidatePath('/');
+        return { success: true };
+    } catch (error: any) {
+        console.error('AddToCart Error:', error);
+        return { error: error.message || 'Failed to add item' };
     }
-
-    revalidatePath('/'); // or specific paths
-    return { success: true };
 }
 
 export async function removeFromCartAction(productId: string, variant?: string) {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+        const session = await getSession();
+        if (!session?.userId) return { error: 'Not authenticated' };
 
-    if (!user) return;
+        const supabase = createAdminClient();
 
-    let query = supabase
-        .from('cart_items')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('product_id', productId);
+        let query = supabase
+            .from('cart_items')
+            .delete()
+            .eq('user_id', session.userId) // Securely filter by user
+            .eq('product_id', productId);
 
-    if (variant) {
-        query = query.eq('variant', variant);
-    } else {
-        query = query.is('variant', null);
+        if (variant) {
+            query = query.eq('variant', variant);
+        } else {
+            query = query.is('variant', null);
+        }
+
+        const { error } = await query;
+        if (error) throw error;
+
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error('RemoveFromCart Error:', error);
+        return { error: 'Failed to remove item' };
     }
+}
 
-    await query;
-    revalidatePath('/');
+export async function removeBundleAction(bundleId: string) {
+    try {
+        const session = await getSession();
+        if (!session?.userId) return { error: 'Not authenticated' };
+
+        const supabase = createAdminClient();
+
+        const { error } = await supabase
+            .from('cart_items')
+            .delete()
+            .eq('user_id', session.userId)
+            .eq('bundle_id', bundleId);
+
+        if (error) throw error;
+
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error('RemoveBundle Error:', error);
+        return { error: 'Failed to remove bundle' };
+    }
 }
 
 export async function updateQuantityAction(productId: string, variant: string | undefined, quantity: number) {
-    // Same as addToCart really, just explicit update
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+        const session = await getSession();
+        if (!session?.userId) return { error: 'Not authenticated' };
 
-    if (!user) return;
+        const supabase = createAdminClient();
 
-    if (quantity <= 0) {
-        // Should remove
-        return removeFromCartAction(productId, variant);
+        if (quantity <= 0) {
+            return removeFromCartAction(productId, variant);
+        }
+
+        let query = supabase
+            .from('cart_items')
+            .update({ quantity })
+            .eq('user_id', session.userId)
+            .eq('product_id', productId);
+
+        if (variant) {
+            query = query.eq('variant', variant);
+        } else {
+            query = query.is('variant', null);
+        }
+
+        const { error } = await query;
+        if (error) throw error;
+
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error('UpdateQuantity Error:', error);
+        return { error: 'Failed to update quantity' };
     }
-
-    const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity })
-        .eq('user_id', user.id)
-        .eq('product_id', productId)
-        .eq('variant', variant || null) // Handle null variant
-    // .is('variant', null) logic is tricky in update if variant is undefined.
-    // We need conditional builder or explicit null check.
-
-    // Supabase .eq() with null works as IS NULL in some versions, but better be safe.
-    // Actually, upsert is safer if we have the ID. But we don't.
-
-    // Let's refine the query construction
-    let query = supabase.from('cart_items').update({ quantity }).eq('user_id', user.id).eq('product_id', productId);
-
-    if (variant) {
-        query = query.eq('variant', variant);
-    } else {
-        query = query.is('variant', null);
-    }
-
-    await query;
-    revalidatePath('/');
 }
 
-export async function syncCartAction(localItems: any[]) {
-    // Called on login to merge local items
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+export async function clearCartAction() {
+    try {
+        const session = await getSession();
+        if (!session?.userId) return { error: 'Not authenticated' };
 
-    if (!user) return;
+        const supabase = createAdminClient();
 
-    // We loop through local items and upsert them.
-    // To avoid "overwrite" if DB has higher quantity? 
-    // Simple logic: Local wins or DB+Local? 
-    // Usually "Merge" means Sum.
-    // But complexity...
-    // Let's just Upsert local items, overwriting DB for those specific items, or adding them.
-    // Actually, best UX: if DB has it, add quantities.
-
-    for (const item of localItems) {
-        // Fetch existing
-        const { data: existing } = await supabase
+        const { error } = await supabase
             .from('cart_items')
-            .select('quantity')
-            .eq('user_id', user.id)
-            .eq('product_id', item.productId)
-            .filter('variant', item.variant ? 'eq' : 'is', item.variant || null)
-            .single();
+            .delete()
+            .eq('user_id', session.userId);
 
-        const newQty = (existing?.quantity || 0) + item.quantity;
+        if (error) throw error;
 
-        await supabase.from('cart_items').upsert({
-            user_id: user.id,
-            product_id: item.productId,
-            variant: item.variant || null,
-            quantity: newQty
-        }, { onConflict: 'user_id,product_id,variant' });
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error('ClearCart Error:', error);
+        return { error: 'Failed to clear cart' };
     }
+}
 
-    revalidatePath('/');
-    return { success: true };
+// Sync is less relevant now as we don't have a reliable client auth state to trigger it.
+// Unless we trigger it on login action.
+export async function syncCartAction(localItems: any[]) {
+    try {
+        const session = await getSession();
+        if (!session?.userId || !localItems.length) return;
+
+        console.log('[ServerAction] Syncing Cart for User:', session.userId);
+
+        // Loop and add (Atomic)
+        for (const item of localItems) {
+            await addToCartAction({
+                productId: item.productId,
+                quantity: item.quantity,
+                variant: item.variant
+            });
+        }
+
+        revalidatePath('/');
+        return { success: true };
+    } catch (error) {
+        console.error('SyncCart Error:', error);
+    }
 }

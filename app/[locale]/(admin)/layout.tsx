@@ -1,7 +1,7 @@
 import { redirect } from '@/lib/navigation';
 import { verifySession } from '@/lib/auth/session';
 import { Link } from '@/lib/navigation';
-import { LayoutDashboard, Package, ShoppingCart, LogOut, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, LogOut, ShoppingBag, Users, Layers, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { logout } from '@/lib/actions/auth';
 import AdminLanguageToggle from '@/components/admin/AdminLanguageToggle';
@@ -15,7 +15,7 @@ async function isAdmin(userId: string) {
         .eq('id', userId)
         .single();
 
-    return user?.role === 'admin';
+    return user?.role === 'admin' || user?.role === 'owner';
 }
 
 export default async function AdminLayout({
@@ -50,7 +50,7 @@ export default async function AdminLayout({
                         className="flex items-center gap-3 px-4 py-3 rounded-md text-gray-400 hover:bg-black/50 hover:text-white transition-colors"
                     >
                         <LayoutDashboard className="h-5 w-5" />
-                        {t('dashboard')}
+                        {t('dashboard.label')}
                     </Link>
                     <Link
                         href="/admin/orders"
@@ -65,6 +65,27 @@ export default async function AdminLayout({
                     >
                         <Package className="h-5 w-5" />
                         {t('inventory')}
+                    </Link>
+                    <Link
+                        href="/admin/hero"
+                        className="flex items-center gap-3 px-4 py-3 rounded-md text-gray-400 hover:bg-black/50 hover:text-white transition-colors"
+                    >
+                        <ImageIcon className="h-5 w-5" />
+                        Hero Slider
+                    </Link>
+                    <Link
+                        href="/admin/bundles"
+                        className="flex items-center gap-3 px-4 py-3 rounded-md text-gray-400 hover:bg-black/50 hover:text-white transition-colors"
+                    >
+                        <Layers className="h-5 w-5" />
+                        {t('bundles')}
+                    </Link>
+                    <Link
+                        href="/admin/users"
+                        className="flex items-center gap-3 px-4 py-3 rounded-md text-gray-400 hover:bg-black/50 hover:text-white transition-colors"
+                    >
+                        <Users className="h-5 w-5" />
+                        {t('users')}
                     </Link>
 
                     <AdminLanguageToggle />

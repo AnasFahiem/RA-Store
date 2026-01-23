@@ -174,7 +174,7 @@ export default function ProductView({ product }: { product: Product }) {
                             <span className="text-2xl font-bold text-foreground block mb-1">{formatCurrency(product.base_price)}</span>
                             <span className="text-sm text-green-600 font-medium">{t('freeReturns')}</span>
                             <div className="text-sm text-muted-foreground mt-2">
-                                {t('delivery')} <span className="font-bold text-foreground">Tomorrow, Jan 21</span>
+                                {t('delivery')} <span className="font-bold text-foreground">{t('deliveryDate')}</span>
                             </div>
                         </div>
 
@@ -215,11 +215,11 @@ export default function ProductView({ product }: { product: Product }) {
 
                         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 text-xs text-muted-foreground space-y-1">
                             <div className="flex justify-between">
-                                <span>Ships from</span>
+                                <span>{t('shipsFrom')}</span>
                                 <span className="font-medium text-foreground">RA Store</span>
                             </div>
                             <div className="flex justify-between">
-                                <span>Sold by</span>
+                                <span>{t('soldBy')}</span>
                                 <span className="font-medium text-foreground">RA Store</span>
                             </div>
                         </div>

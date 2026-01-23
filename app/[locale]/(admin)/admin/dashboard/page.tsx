@@ -19,19 +19,22 @@ async function getStats() {
     };
 }
 
+import { getTranslations } from 'next-intl/server';
+
 export default async function AdminDashboard() {
     const stats = await getStats();
+    const t = await getTranslations('Admin.dashboard');
 
     return (
         <div className="space-y-8">
-            <h1 className="text-3xl font-bold font-heading uppercase tracking-wide">Dashboard Overview</h1>
+            <h1 className="text-3xl font-bold font-heading uppercase tracking-wide">{t('title')}</h1>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-zinc-900 border border-white/5 p-6 rounded-lg">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">Total Revenue</p>
+                            <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">{t('revenue')}</p>
                             <h3 className="text-3xl font-bold text-white mt-1">{formatCurrency(stats.totalRevenue)}</h3>
                         </div>
                         <div className="p-3 bg-green-500/10 rounded-full text-green-400">
@@ -43,7 +46,7 @@ export default async function AdminDashboard() {
                 <div className="bg-zinc-900 border border-white/5 p-6 rounded-lg">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">Total Orders</p>
+                            <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">{t('orders')}</p>
                             <h3 className="text-3xl font-bold text-white mt-1">{stats.orderCount}</h3>
                         </div>
                         <div className="p-3 bg-blue-500/10 rounded-full text-blue-400">
@@ -55,7 +58,7 @@ export default async function AdminDashboard() {
                 <div className="bg-zinc-900 border border-white/5 p-6 rounded-lg">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">Products</p>
+                            <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">{t('products')}</p>
                             <h3 className="text-3xl font-bold text-white mt-1">{stats.productCount}</h3>
                         </div>
                         <div className="p-3 bg-accent/10 rounded-full text-accent">
@@ -67,7 +70,7 @@ export default async function AdminDashboard() {
                 <div className="bg-zinc-900 border border-white/5 p-6 rounded-lg">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">Customers</p>
+                            <p className="text-sm text-gray-400 font-medium uppercase tracking-wider">{t('customers')}</p>
                             <h3 className="text-3xl font-bold text-white mt-1">{stats.userCount}</h3>
                         </div>
                         <div className="p-3 bg-purple-500/10 rounded-full text-purple-400">
@@ -81,7 +84,7 @@ export default async function AdminDashboard() {
             <div className="bg-zinc-900 border border-white/5 rounded-lg p-6 min-h-[300px] flex items-center justify-center">
                 <div className="text-center text-gray-500">
                     <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Sales analytic charts coming in V2</p>
+                    <p>{t('chartPlaceholder')}</p>
                 </div>
             </div>
         </div>

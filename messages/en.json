@@ -1,21 +1,91 @@
 {
+    "Bundler": {
+        "title": "Build Your Bundle",
+        "subtitle": "Select products for your custom kit. The more you add, the more you save!",
+        "description": "Create your custom kit and save big with dynamic discounts.",
+        "selectProducts": "Select Products",
+        "suggestionsTitle": "Based on your selection",
+        "addToBundle": "Add to Bundle",
+        "add": "Add",
+        "yourBundle": "Your Bundle",
+        "emptyBundle": "Your bundle is empty.",
+        "subtotal": "Subtotal",
+        "total": "Total",
+        "discount": "Discount",
+        "addToCart": "Add Bundle to Cart",
+        "creatingBundle": "Creating Bundle...",
+        "addItemsUnlock": "Add items to unlock discounts",
+        "itemsCount": "{count} items",
+        "goal": "Goal: {count}",
+        "addMoreForDiscount": "Add {count} more for a bigger discount!",
+        "discountActiveTags": {
+            "percentage": "{value}% Discount Active!",
+            "fixed": "{value} Discount Active!"
+        },
+        "bundleLabel": "Bundle",
+        "inStock": "In Stock",
+        "includedInBundle": "Included in Bundle",
+        "quantity": "Quantity",
+        "freeShipping": "Free Shipping",
+        "secureCheckout": "Secure Checkout",
+        "officialGear": "Official Gear"
+    },
     "Navbar": {
         "shop": "Shop",
         "bundles": "Bundles",
         "factory": "Factory",
         "account": "Account",
         "adminPanel": "Admin Panel",
-        "cart": "Cart"
+        "cart": "Cart",
+        "auth": {
+            "logout": "Log Out",
+            "signin": "Sign In"
+        }
     },
     "Admin": {
-        "dashboard": "Dashboard",
+        "dashboard": {
+            "label": "Dashboard",
+            "title": "Dashboard Overview",
+            "revenue": "Total Revenue",
+            "orders": "Total Orders",
+            "products": "Products",
+            "customers": "Customers",
+            "chartPlaceholder": "Sales analytic charts coming in V2"
+        },
+        "bundles": "Bundles",
+        "users": "Users",
         "orders": "Orders",
         "inventory": "Inventory",
         "backToShop": "Back to Shop",
         "exit": "Exit Admin",
+        "loading": "Loading...",
+        "heroSlider": "Hero Slider Management",
+        "addNewSlide": "Add New Slide",
+        "addingSlide": "Adding slide...",
+        "currentSlides": "Current Slides",
+        "noSlides": "No slides added yet. The default background will be used.",
+        "order": "Order: {order}",
+        "moveUp": "Move Up",
+        "moveDown": "Move Down",
+        "delete": "Delete",
+        "confirmDelete": "Are you sure you want to delete this slide?",
+        "failedAdd": "Failed to add slide",
+        "failedDelete": "Failed to delete slide",
         "panel": "Admin Panel",
         "addProduct": "Add Product",
         "ordersTitle": "Order Management",
+        "bundlesTitle": "Bundles & Discounts",
+        "usersTitle": "Users Management",
+        "discountRules": "Discount Rules",
+        "addRule": "Add Rule",
+        "noRules": "No discount rules active.",
+        "preMadeBundles": "Pre-made Bundles (Shop)",
+        "createBundle": "Create Bundle",
+        "noBundles": "No pre-made bundles created.",
+        "items": "Items",
+        "calculatedPrice": "Calculated Price",
+        "off": "Off",
+        "minQty": "Min Qty: {qty}",
         "table": {
             "product": "Product",
             "category": "Category",
@@ -25,7 +95,11 @@
             "id": "Order ID",
             "customer": "Customer",
             "date": "Date",
-            "total": "Total"
+            "total": "Total",
+            "createdAt": "Created At",
+            "role": "Role",
+            "email": "Email",
+            "name": "Name"
         },
         "noProducts": "No products found. Add your first item.",
         "noOrders": "No orders received yet."
@@ -78,6 +152,7 @@
         "freeReturns": "FREE Returns",
         "inStock": "In Stock",
         "delivery": "Delivery",
+        "deliveryDate": "Tomorrow, Jan 21",
         "details": "Product Details"
     },
     "Cart": {
@@ -104,16 +179,45 @@
         "createAccount": "Create Account",
         "signIn": "Sign In"
     },
+    "Products": {
+        "title": "All Gear",
+        "description": "Performance equipment for the serious gamer. Browse our collection of pro-tier peripherals and accessories."
+    },
     "Footer": {
         "about": "About Us",
-        "contact": "Contact",
-        "shipping": "Shipping Policy",
+        "contact": "Contact Us",
+        "shipping": "Shipping & Returns",
         "returns": "Returns",
-        "rights": "All rights reserved."
+        "rights": "Gym Gear Factory. All rights reserved.",
+        "support": "Support",
+        "sizeGuide": "Size Guide",
+        "badges": {
+            "factory": {
+                "title": "Direct From Factory",
+                "description": "Premium gym gear manufactured by us, sold directly to you. No middlemen, just quality and durability."
+            }
+        }
     },
     "Common": {
         "backToShop": "Back to Shop",
         "loading": "Loading...",
         "deleteConfirm": "Are you sure you want to delete this product?"
+    },
+    "Store": {
+        "sort": {
+            "label": "Sort",
+            "featured": "Featured",
+            "priceLowHigh": "Price: Low to High",
+            "priceHighLow": "Price: High to Low",
+            "nameAZ": "Name: A-Z",
+            "nameZA": "Name: Z-A"
+        },
+        "categories": {
+            "all": "All",
+            "bundles": "Bundles",
+            "gloves": "Gloves",
+            "accessories": "Accessories",
+            "wraps": "Wraps"
+        }
     }
 }

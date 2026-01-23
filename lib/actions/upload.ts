@@ -9,10 +9,11 @@ export async function uploadImage(formData: FormData) {
 
         // 1. Verify Authentication & Role
         const session = await verifySession();
+        console.log('Server Action: Session verified, Full Session:', JSON.stringify(session));
         console.log('Server Action: Session verified, Role:', session.role);
 
-        if (session.role !== 'admin') {
-            console.error('Server Action: Unauthorized role');
+        if (session.role !== 'admin' && session.role !== 'owner') {
+            console.error('Server Action: Unauthorized role:', session.role);
             return { error: 'Unauthorized' };
         }
 

@@ -1,9 +1,10 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { sendOrderEmail } from '@/lib/email';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { getSession } from '@/lib/auth/session';
 
 const OrderSchema = z.object({
     name: z.string().min(2),
@@ -17,8 +18,62 @@ const OrderSchema = z.object({
         quantity: z.number().min(1),
         price: z.number(),
         name: z.string()
-    }))
+    })),
+    saveAddress: z.boolean().optional()
 });
+
+export async function getSavedAddresses() {
+    const session = await getSession();
+    console.log('getSavedAddresses Session:', session);
+    if (!session?.userId) {
+        console.log('getSavedAddresses: No user ID');
+        return [];
+    }
+
+    const { data: addresses, error } = await supabaseAdmin
+        .from('addresses')
+        .select('*')
+        .eq('user_id', session.userId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('getSavedAddresses Error:', error);
+    }
+
+    console.log('getSavedAddresses Found:', addresses?.length);
+
+    return addresses || [];
+}
+
+
+export async function getUserProfile() {
+    const session = await getSession();
+    if (!session?.userId) return null;
+
+    const { data: user } = await supabaseAdmin
+        .from('users')
+        .select('name, email')
+        .eq('id', session.userId)
+        .single();
+
+    // Attempt to find latest phone from last order
+    const { data: lastOrder } = await supabaseAdmin
+        .from('orders')
+        .select('shipping_address')
+        .eq('user_id', session.userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+    const lastPhone = lastOrder?.shipping_address && typeof lastOrder.shipping_address !== 'string'
+        ? (lastOrder.shipping_address as any).phone
+        : '';
+
+    return {
+        ...user,
+        phone: lastPhone || ''
+    };
+}
 
 export async function placeOrder(formData: any) {
     const result = OrderSchema.safeParse(formData);
@@ -27,32 +82,51 @@ export async function placeOrder(formData: any) {
         return { success: false, error: 'Invalid form data' };
     }
 
-    const { name, email, phone, address, city, items } = result.data;
+    const { name, email, phone, address, city, items, saveAddress } = result.data;
     const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    // 1. Insert Order
-    // Ensure 'orders' table exists with these fields. 
-    // If user mentioned "each user should have his special orders", we should link user_id if logged in.
-    // I'll check if we can get the session here.
+    // Get session to check if user is logged in
+    const session = await getSession();
 
-    // We can import getSession. By default assuming guest checkout is allowed or covered by schema.
-    const { createClient } = await import('@supabase/supabase-js');
-    // Actually we use the singleton @/lib/supabase which might be a client-side one?
-    // Usually actions need a server client with cookies.
-    // Let's blindly use @/lib/supabase or @/lib/auth/session logic if available.
-    // For now I'm using the imported 'supabase' which is likely the client.
-    // Ideally we should use createServerClient from subapase-ssr.
-    // But sticking to existing patterns:
+    // Save address if requested and user is logged in
+    console.log('PlaceOrder Debug:', { saveAddress, userId: session?.userId });
+    if (saveAddress && session?.userId) {
+        console.log('Attempting to save address...');
+        const { error: addressError } = await supabaseAdmin
+            .from('addresses')
+            .insert({
+                user_id: session.userId,
+                address_line: address,
+                city: city,
+                is_default: false
+            });
 
-    const { data: order, error: orderError } = await supabase
+        if (addressError) {
+            console.error('Failed to save address:', addressError);
+            // Continue processing order even if address save fails
+        }
+    }
+
+    const { data: order, error: orderError } = await supabaseAdmin
         .from('orders')
         .insert({
-            customer_name: name,
-            customer_email: email,
-            customer_phone: phone,
-            shipping_address: `${address}, ${city}`,
             total_amount: total,
-            status: 'pending'
+            status: 'pending',
+            user_id: session?.userId,
+            shipping_address: {
+                name,
+                email,
+                phone,
+                street: address,
+                city
+            },
+            items: items.map((item: any) => ({
+                product_id: item.productId,
+                quantity: item.quantity,
+                price: item.price,
+                name: item.name,
+                variant: item.variant
+            }))
         })
         .select()
         .single();
@@ -62,27 +136,19 @@ export async function placeOrder(formData: any) {
         return { success: false, error: 'Failed to create order' };
     }
 
-    // 2. Insert Items
-    const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.productId,
-        quantity: item.quantity,
-        price_at_purchase: item.price,
-        variant: item.variant
-    }));
-
-    const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-    if (itemsError) {
-        console.error('Order items failed:', itemsError);
-        return { success: false, error: 'Failed to save items' };
-    }
+    // Email sending logic below...
 
     // 3. Send Emails
     try {
-        await sendOrderEmail({ order, items });
+        // Fetch all admins and owners
+        const { data: admins } = await supabaseAdmin
+            .from('users')
+            .select('email')
+            .or('role.eq.admin,role.eq.owner');
+
+        const adminEmails = admins?.map(a => a.email).filter(Boolean) as string[] || [];
+
+        await sendOrderEmail({ order, items, adminEmails });
     } catch (e) {
         console.error('Email failed:', e);
     }
