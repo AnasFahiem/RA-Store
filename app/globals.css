@@ -45,6 +45,11 @@
   /* zinc-800 */
 }
 
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
