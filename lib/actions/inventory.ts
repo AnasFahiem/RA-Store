@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { redirect } from 'next/navigation';
 import { verifySession } from '@/lib/auth/session';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 const productSchema = z.object({
     name: z.string().min(2),
@@ -12,14 +13,13 @@ const productSchema = z.object({
     description_ar: z.string().optional(),
     base_price: z.coerce.number().min(0),
     category: z.string().min(2),
-    images: z.string().optional(), // JSON string of string[]
-    sizes: z.string().optional(), // JSON string
+    images: z.string().optional(),
+    sizes: z.string().optional(),
 });
 
 export async function addProduct(prevState: any, formData: FormData) {
     const session = await verifySession();
 
-    // Check DB role for up-to-date permission
     const { data: user } = await supabase
         .from('users')
         .select('role')
@@ -39,11 +39,11 @@ export async function addProduct(prevState: any, formData: FormData) {
 
     const { name, name_ar, description, description_ar, base_price, category, sizes } = result.data;
 
-    // Parse images from JSON string
     let parsedImages: string[] = [];
     try {
         if (result.data.images) {
-            parsedImages = JSON.parse(result.data.images);
+            const parsed = JSON.parse(result.data.images);
+            if (Array.isArray(parsed)) parsedImages = parsed;
         }
     } catch (e) {
         console.error('Failed to parse images', e);
@@ -51,12 +51,17 @@ export async function addProduct(prevState: any, formData: FormData) {
 
     let parsedSizes: string[] = [];
     try {
-        if (sizes) parsedSizes = JSON.parse(sizes);
+        if (sizes) {
+            const parsed = JSON.parse(sizes);
+            if (Array.isArray(parsed)) parsedSizes = parsed;
+        }
     } catch (e) {
         console.error('Failed to parse sizes', e);
     }
 
-    const { error } = await supabase
+    const supabaseAdmin = createAdminClient();
+
+    const { error } = await supabaseAdmin
         .from('products')
         .insert({
             name,
@@ -66,7 +71,7 @@ export async function addProduct(prevState: any, formData: FormData) {
             base_price,
             category,
             images: parsedImages,
-            items_in_stock: 10, // Default stock if needed
+            items_in_stock: 10,
             sizes: parsedSizes
         });
 
@@ -91,7 +96,8 @@ export async function deleteProduct(productId: string) {
         return { error: 'Unauthorized' };
     }
 
-    const { error } = await supabase.from('products').delete().eq('id', productId);
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin.from('products').delete().eq('id', productId);
 
     if (error) {
         console.error('Delete Error:', error);
@@ -112,40 +118,39 @@ export async function updateProduct(productId: string, prevState: any, formData:
         return { error: 'Unauthorized' };
     }
 
-    // LOGGING FOR DEBUG
     console.log('[updateProduct] Product ID:', productId);
-    const rawData = Object.fromEntries(formData);
-    console.log('[updateProduct] Raw Form Data (Partial):', { ...rawData, images: '...truncated...', sizes: rawData.sizes });
 
-    const result = productSchema.safeParse(rawData);
+    const result = productSchema.safeParse(Object.fromEntries(formData));
 
     if (!result.success) {
         console.error('[updateProduct] Validation Failed:', result.error);
-        return { error: 'Invalid inputs: ' + result.error.issues.map(i => i.message).join(', ') };
+        return { error: 'Invalid inputs: ' + result.error.issues.map((i: any) => i.message).join(', ') };
     }
 
     const { name, name_ar, description, description_ar, base_price, category, sizes } = result.data;
 
-    // Parse images from JSON string
     let parsedImages: string[] = [];
     try {
         if (result.data.images) {
-            parsedImages = JSON.parse(result.data.images);
+            const parsed = JSON.parse(result.data.images);
+            if (Array.isArray(parsed)) parsedImages = parsed;
         }
     } catch (e) {
         console.error('[updateProduct] Failed to parse images', e);
     }
 
-    console.log('[updateProduct] Parsed Images Length:', parsedImages.length);
-
     let parsedSizes: string[] = [];
     try {
-        if (sizes) parsedSizes = JSON.parse(sizes);
+        if (sizes) {
+            const parsed = JSON.parse(sizes);
+            if (Array.isArray(parsed)) parsedSizes = parsed;
+        }
     } catch (e) {
         console.error('[updateProduct] Failed to parse sizes', e);
     }
 
-    const { data: updateData, error, count } = await supabase
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin
         .from('products')
         .update({
             name,
@@ -154,18 +159,15 @@ export async function updateProduct(productId: string, prevState: any, formData:
             description_ar,
             base_price,
             category,
-            images: parsedImages, // Save the array
+            images: parsedImages,
             sizes: parsedSizes
         })
-        .eq('id', productId)
-        .select();
+        .eq('id', productId);
 
     if (error) {
         console.error('[updateProduct] DB Update Error:', error);
         return { error: error.message };
     }
-
-    console.log('[updateProduct] Success. Rows updated:', count, 'Data:', updateData);
 
     redirect('/admin/inventory');
 }
