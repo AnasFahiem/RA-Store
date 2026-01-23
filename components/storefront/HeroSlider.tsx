@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
+import heroBg from '../../public/hero-bg.jpg';
 
 interface HeroSlide {
     id: string;
@@ -23,7 +24,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
     const [isSliderActive, setIsSliderActive] = useState(false);
 
     // Default to a placeholder if no slides exist, but try to use the first slide (which should be the seeded default)
-    const safeSlides = slides.length > 0 ? slides : [{ id: 'default', image_url: '/hero-bg.jpg', sort_order: 1 }];
+    const safeSlides = slides.length > 0 ? slides : [{ id: 'default', image_url: heroBg.src, sort_order: 1 }];
 
     // Intro timer
     useEffect(() => {

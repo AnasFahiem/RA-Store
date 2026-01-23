@@ -1,5 +1,6 @@
 import { Link } from '@/lib/navigation';
 import { useTranslations } from 'next-intl';
+import { Facebook, Instagram } from 'lucide-react';
 
 export default function Footer() {
     const t = useTranslations('Footer');
@@ -7,7 +8,7 @@ export default function Footer() {
     return (
         <footer className="bg-background border-t border-border transition-colors duration-300">
             <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div>
                         <h3 className="text-sm font-bold text-foreground tracking-wider uppercase">{t('badges.factory.title')}</h3>
                         <p className="mt-4 text-base text-muted-foreground">
@@ -33,6 +34,19 @@ export default function Footer() {
                                 </Link>
                             </li>
                         </ul>
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-bold text-foreground tracking-wider uppercase">Follow Us</h3>
+                        <div className="mt-4 flex space-x-6">
+                            <a href="https://www.facebook.com/profile.php?id=61571431865172" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-accent transition-colors">
+                                <span className="sr-only">Facebook</span>
+                                <Facebook className="h-6 w-6" />
+                            </a>
+                            <a href="https://www.instagram.com/ra.sports.supplies?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-accent transition-colors">
+                                <span className="sr-only">Instagram</span>
+                                <Instagram className="h-6 w-6" />
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div className="mt-8 border-t border-border pt-8 md:flex md:items-center md:justify-between">

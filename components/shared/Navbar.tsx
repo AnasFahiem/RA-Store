@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import Search from './Search';
+import logoImg from '../../public/logo.png';
 
 export default function Navbar({ role, userName }: { role?: string; userName?: string }) {
     const { totalItems, openCart, disconnect } = useCart();
@@ -37,7 +38,7 @@ export default function Navbar({ role, userName }: { role?: string; userName?: s
                     <div className="flex-shrink-0 flex items-center">
                         <Link href="/" className="flex items-center gap-2 group">
                             <div className="relative w-12 h-12">
-                                <Image src="/logo.png" alt="RA Store Logo" fill className="object-contain invert-0" />
+                                <Image src={logoImg} alt="RA Store Logo" fill className="object-contain invert-0" />
                             </div>
                             <span className="text-2xl font-bold font-heading uppercase tracking-tighter group-hover:text-accent transition-colors hidden sm:block text-white">
                                 STORE
