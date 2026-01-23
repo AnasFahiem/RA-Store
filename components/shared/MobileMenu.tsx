@@ -64,7 +64,7 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="fixed top-0 right-0 bottom-0 w-72 z-[101] shadow-2xl"
+                        className="fixed top-0 right-0 w-72 z-[101] shadow-2xl h-screen"
                         style={{
                             backgroundColor: '#18181b',
                             display: 'flex',
