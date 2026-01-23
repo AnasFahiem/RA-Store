@@ -64,11 +64,11 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                         className="fixed top-0 right-0 h-full w-72 z-[101] flex flex-col shadow-2xl overflow-hidden"
                     >
-                        {/* Solid Background - absolutely positioned */}
-                        <div className="absolute inset-0 bg-black" style={{ backgroundColor: '#000000' }} />
+                        {/* Solid Background - absolutely positioned at z-0 */}
+                        <div className="absolute inset-0 z-0" style={{ backgroundColor: '#18181b' }} />
 
-                        {/* Header */}
-                        <div className="relative flex items-center justify-between p-4 border-b border-white/10 bg-zinc-900">
+                        {/* Header - z-10 to be above background */}
+                        <div className="relative z-10 flex items-center justify-between p-4 border-b border-white/10">
                             <span className="text-lg font-bold font-heading uppercase tracking-wider text-white">
                                 Menu
                             </span>
@@ -80,8 +80,8 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                             </button>
                         </div>
 
-                        {/* Navigation Links */}
-                        <nav className="relative flex-1 p-4 space-y-2 bg-zinc-900">
+                        {/* Navigation Links - z-10 to be above background */}
+                        <nav className="relative z-10 flex-1 p-4 space-y-2 overflow-y-auto">
                             {navLinks.map((link) => {
                                 const Icon = link.icon;
                                 const isActive = pathname === link.href ||
@@ -117,8 +117,8 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                             )}
                         </nav>
 
-                        {/* Footer */}
-                        <div className="relative p-4 border-t border-white/10 bg-zinc-900">
+                        {/* Footer - z-10 to be above background */}
+                        <div className="relative z-10 p-4 border-t border-white/10">
                             <p className="text-xs text-gray-500 text-center">
                                 © 2024 RA Store
                             </p>
