@@ -18,7 +18,15 @@ const productSchema = z.object({
 
 export async function addProduct(prevState: any, formData: FormData) {
     const session = await verifySession();
-    if (session?.role !== 'admin') {
+
+    // Check DB role for up-to-date permission
+    const { data: user } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.userId)
+        .single();
+
+    if (user?.role !== 'admin' && user?.role !== 'owner') {
         return { error: 'Unauthorized' };
     }
 
@@ -72,7 +80,14 @@ export async function addProduct(prevState: any, formData: FormData) {
 
 export async function deleteProduct(productId: string) {
     const session = await verifySession();
-    if (session?.role !== 'admin') {
+
+    const { data: user } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.userId)
+        .single();
+
+    if (user?.role !== 'admin' && user?.role !== 'owner') {
         return { error: 'Unauthorized' };
     }
 
@@ -86,7 +101,14 @@ export async function deleteProduct(productId: string) {
 
 export async function updateProduct(productId: string, prevState: any, formData: FormData) {
     const session = await verifySession();
-    if (session?.role !== 'admin') {
+
+    const { data: user } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.userId)
+        .single();
+
+    if (user?.role !== 'admin' && user?.role !== 'owner') {
         return { error: 'Unauthorized' };
     }
 
