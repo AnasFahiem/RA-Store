@@ -89,42 +89,46 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
 
                         {/* Navigation Links */}
                         <nav
-                            className="flex-1 p-4 space-y-2 overflow-y-auto"
+                            className="flex-1 p-4 overflow-y-auto"
                             style={{ backgroundColor: '#18181b' }}
                         >
-                            {navLinks.map((link) => {
-                                const Icon = link.icon;
-                                const isActive = pathname === link.href ||
-                                    (link.href !== '/' && pathname.startsWith(link.href));
+                            <div className="flex flex-col gap-2">
+                                {navLinks.map((link) => {
+                                    const Icon = link.icon;
+                                    const isActive = pathname === link.href ||
+                                        (link.href !== '/' && pathname.startsWith(link.href));
 
-                                return (
+                                    return (
+                                        <Link
+                                            key={link.href}
+                                            href={link.href}
+                                            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${isActive
+                                                ? 'bg-accent text-white'
+                                                : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                                                }`}
+                                            style={{ minHeight: '48px' }}
+                                        >
+                                            <Icon className="h-5 w-5" />
+                                            <span>{link.label}</span>
+                                        </Link>
+                                    );
+                                })}
+
+                                {/* Admin Link */}
+                                {isAdmin && (
                                     <Link
-                                        key={link.href}
-                                        href={link.href}
-                                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${isActive
+                                        href="/admin/dashboard"
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${pathname.startsWith('/admin')
                                             ? 'bg-accent text-white'
-                                            : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                                            : 'text-accent hover:bg-accent/10'
                                             }`}
+                                        style={{ minHeight: '48px' }}
                                     >
-                                        <Icon className="h-5 w-5" />
-                                        {link.label}
+                                        <Shield className="h-5 w-5" />
+                                        <span>{t('adminPanel')}</span>
                                     </Link>
-                                );
-                            })}
-
-                            {/* Admin Link */}
-                            {isAdmin && (
-                                <Link
-                                    href="/admin/dashboard"
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${pathname.startsWith('/admin')
-                                        ? 'bg-accent text-white'
-                                        : 'text-accent hover:bg-accent/10'
-                                        }`}
-                                >
-                                    <Shield className="h-5 w-5" />
-                                    {t('adminPanel')}
-                                </Link>
-                            )}
+                                )}
+                            </div>
                         </nav>
 
                         {/* Footer */}
