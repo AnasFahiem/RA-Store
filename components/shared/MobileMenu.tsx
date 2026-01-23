@@ -64,11 +64,9 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="fixed top-0 right-0 w-72 z-[101] shadow-2xl h-screen"
+                        className="fixed top-0 right-0 w-72 z-[101] shadow-2xl rounded-bl-2xl"
                         style={{
-                            backgroundColor: '#18181b',
-                            display: 'flex',
-                            flexDirection: 'column'
+                            backgroundColor: '#18181b'
                         }}
                     >
                         {/* Header */}
@@ -89,7 +87,7 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
 
                         {/* Navigation Links */}
                         <nav
-                            className="flex-1 p-4 overflow-y-auto"
+                            className="p-4"
                             style={{ backgroundColor: '#18181b' }}
                         >
                             <div className="flex flex-col gap-2">
@@ -130,16 +128,6 @@ export default function MobileMenu({ isOpen, onClose, role }: MobileMenuProps) {
                                 )}
                             </div>
                         </nav>
-
-                        {/* Footer */}
-                        <div
-                            className="p-4 border-t border-white/10"
-                            style={{ backgroundColor: '#18181b' }}
-                        >
-                            <p className="text-xs text-gray-500 text-center">
-                                © 2024 RA Store
-                            </p>
-                        </div>
                     </motion.aside>
                 </>
             )}
