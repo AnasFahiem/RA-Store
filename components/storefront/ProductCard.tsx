@@ -74,16 +74,14 @@ export default function ProductCard({ id, name, name_ar, price, image, category,
                 </button>
             </Link>
 
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider">{category}</p>
-                    <Link href={`/products/${id}`}>
-                        <h3 className="text-base sm:text-lg font-bold text-foreground font-heading uppercase tracking-wide hover:text-accent transition-colors">
-                            {displayName}
-                        </h3>
-                    </Link>
-                </div>
-                <p className="text-base sm:text-lg font-bold text-accent">{formatCurrency(price)}</p>
+            <div className="flex flex-col gap-1">
+                <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider">{category}</p>
+                <Link href={`/products/${id}`}>
+                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-foreground font-heading uppercase tracking-wide hover:text-accent transition-colors line-clamp-2">
+                        {displayName}
+                    </h3>
+                </Link>
+                <p className="text-sm sm:text-base md:text-lg font-bold text-accent">{formatCurrency(price)}</p>
             </div>
 
             {variants && variants.length > 0 && (

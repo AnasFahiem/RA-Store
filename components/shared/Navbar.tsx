@@ -36,11 +36,11 @@ export default function Navbar({ role, userName }: { role?: string; userName?: s
                 <div className="flex justify-between h-16 items-center">
                     {/* Logo */}
                     <div className="flex-shrink-0 flex items-center">
-                        <Link href="/" className="flex items-center gap-2 group">
-                            <div className="relative w-12 h-12">
+                        <Link href="/" className="flex items-center gap-1 sm:gap-2 group">
+                            <div className="relative w-8 h-8 sm:w-12 sm:h-12">
                                 <Image src={logoImg} alt="RA Store Logo" fill className="object-contain invert-0" />
                             </div>
-                            <span className="text-2xl font-bold font-heading uppercase tracking-tighter group-hover:text-accent transition-colors hidden sm:block text-white">
+                            <span className="text-xl sm:text-2xl font-bold font-heading uppercase tracking-tighter group-hover:text-accent transition-colors hidden sm:block text-white">
                                 STORE
                             </span>
                         </Link>
@@ -82,15 +82,14 @@ export default function Navbar({ role, userName }: { role?: string; userName?: s
                     </div>
 
                     {/* Icons */}
-                    <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-1 sm:gap-5">
                         <Search />
-                        <div className="flex items-center gap-5">
+                        <div className="flex items-center gap-1 sm:gap-5">
                             {userName ? (
-                                <div className="flex items-center gap-4">
-                                    <Link href="/account" className="flex items-center gap-2 text-gray-400 hover:text-accent transition-all duration-300">
+                                <div className="flex items-center gap-1 sm:gap-4">
+                                    <Link href="/account" className="flex items-center gap-1 sm:gap-2 text-gray-400 hover:text-accent transition-all duration-300">
                                         <span className="sr-only">{t('account')}</span>
-                                        <User className="h-6 w-6" />
-                                        <span className="text-sm font-medium hidden sm:block">{userName}</span>
+                                        <User className="h-5 w-5 sm:h-6 sm:w-6" />
                                     </Link>
                                     <button
                                         onClick={async () => {
@@ -98,24 +97,24 @@ export default function Navbar({ role, userName }: { role?: string; userName?: s
                                             const { logout } = await import('@/lib/actions/auth');
                                             await logout();
                                         }}
-                                        className="text-xs text-red-500 hover:text-red-400 font-bold uppercase tracking-wide border border-red-500/30 px-2 py-1 rounded"
+                                        className="text-[10px] sm:text-xs text-red-500 hover:text-red-400 font-bold uppercase tracking-wide border border-red-500/30 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded whitespace-nowrap"
                                     >
                                         {t('auth.logout')}
                                     </button>
                                 </div>
                             ) : (
-                                <Link href="/auth/login" className="flex items-center gap-2 text-gray-400 hover:text-accent transition-all duration-300">
-                                    <User className="h-6 w-6" />
-                                    <span className="text-sm font-medium hidden sm:block">{t('auth.signin')}</span>
+                                <Link href="/auth/login" className="flex items-center gap-1 sm:gap-2 text-gray-400 hover:text-accent transition-all duration-300">
+                                    <User className="h-5 w-5 sm:h-6 sm:w-6" />
+                                    <span className="text-xs sm:text-sm font-medium hidden sm:block">{t('auth.signin')}</span>
                                 </Link>
                             )}
                         </div>
-                        <button onClick={openCart} className="group flex items-center p-2 text-gray-400 hover:text-accent hover:scale-125 transition-all duration-300 relative">
+                        <button onClick={openCart} className="group flex items-center p-1 sm:p-2 text-gray-400 hover:text-accent hover:scale-125 transition-all duration-300 relative">
                             <span className="sr-only">{t('cart')}</span>
                             <div className="relative">
-                                <ShoppingBag className="h-6 w-6 flex-shrink-0" />
+                                <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0" />
                                 {totalItems > 0 && (
-                                    <span className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-accent text-white text-xs font-bold flex items-center justify-center">
+                                    <span className="absolute -top-2 -right-2 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-accent text-white text-[10px] sm:text-xs font-bold flex items-center justify-center">
                                         {totalItems}
                                     </span>
                                 )}
@@ -126,20 +125,20 @@ export default function Navbar({ role, userName }: { role?: string; userName?: s
                         {mounted && (
                             <button
                                 onClick={toggleTheme}
-                                className="text-gray-400 hover:text-accent hover:scale-125 p-2 transition-all duration-300 relative group flex items-center gap-1"
+                                className="text-gray-400 hover:text-accent hover:scale-125 p-1 sm:p-2 transition-all duration-300 relative group flex items-center gap-1"
                                 aria-label="Toggle Theme"
                             >
-                                {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+                                {theme === 'dark' ? <Sun className="h-5 w-5 sm:h-6 sm:w-6" /> : <Moon className="h-5 w-5 sm:h-6 sm:w-6" />}
                             </button>
                         )}
 
                         <button
                             onClick={toggleLocale}
-                            className="text-gray-400 hover:text-accent hover:scale-125 p-2 transition-all duration-300 relative group flex items-center gap-1 origin-center"
+                            className="text-gray-400 hover:text-accent hover:scale-125 p-1 sm:p-2 transition-all duration-300 relative group flex items-center gap-0.5 sm:gap-1 origin-center"
                             aria-label="Translate"
                         >
-                            <Globe className="h-6 w-6" />
-                            <span className="text-xs font-medium uppercase">{locale === 'en' ? 'EN' : 'AR'}</span>
+                            <Globe className="h-5 w-5 sm:h-6 sm:w-6" />
+                            <span className="text-[10px] sm:text-xs font-medium uppercase">{locale === 'en' ? 'EN' : 'AR'}</span>
                         </button>
                         <div className="md:hidden">
                             <button className="text-gray-400 hover:text-accent p-2">
