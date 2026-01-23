@@ -14,7 +14,7 @@ const OrderSchema = z.object({
     city: z.string().min(2),
     items: z.array(z.object({
         productId: z.string(),
-        variant: z.string().optional(),
+        variant: z.string().nullish(), // Accepts string, null, or undefined
         quantity: z.number().min(1),
         price: z.number(),
         name: z.string()
