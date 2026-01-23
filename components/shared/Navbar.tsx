@@ -6,8 +6,9 @@ import { ShoppingBag, User, Menu, Globe, Sun, Moon } from 'lucide-react';
 import { useCart } from '@/lib/context/CartContext';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Search from './Search';
+import MobileMenu from './MobileMenu';
 import logoImg from '../../public/logo.png';
 
 export default function Navbar({ role, userName }: { role?: string; userName?: string }) {
@@ -18,8 +19,11 @@ export default function Navbar({ role, userName }: { role?: string; userName?: s
     const t = useTranslations('Navbar');
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => setMounted(true), []);
+
+    const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
 
     const toggleLocale = () => {
         const nextLocale = locale === 'en' ? 'ar' : 'en';
@@ -141,13 +145,23 @@ export default function Navbar({ role, userName }: { role?: string; userName?: s
                             <span className="text-[10px] sm:text-xs font-medium uppercase">{locale === 'en' ? 'EN' : 'AR'}</span>
                         </button>
                         <div className="md:hidden">
-                            <button className="text-gray-400 hover:text-accent p-2">
+                            <button
+                                onClick={() => setIsMobileMenuOpen(true)}
+                                className="text-gray-400 hover:text-accent p-2"
+                            >
                                 <Menu className="h-6 w-6" />
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Menu Sidebar */}
+            <MobileMenu
+                isOpen={isMobileMenuOpen}
+                onClose={closeMobileMenu}
+                role={role}
+            />
         </nav>
     );
 }
