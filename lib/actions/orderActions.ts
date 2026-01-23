@@ -76,10 +76,13 @@ export async function getUserProfile() {
 }
 
 export async function placeOrder(formData: any) {
+    console.log('placeOrder received formData:', JSON.stringify(formData, null, 2));
+
     const result = OrderSchema.safeParse(formData);
 
     if (!result.success) {
-        return { success: false, error: 'Invalid form data' };
+        console.error('Order validation errors:', result.error.format());
+        return { success: false, error: 'Invalid form data: ' + result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ') };
     }
 
     const { name, email, phone, address, city, items, saveAddress } = result.data;
