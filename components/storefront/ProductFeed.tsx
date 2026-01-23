@@ -102,20 +102,34 @@ export default function ProductFeed({ products, bundles }: ProductFeedProps) {
                 {/* Categories - Wrap on mobile */}
                 <div className="w-full md:w-auto">
                     <div className="flex flex-wrap gap-2">
-                        {categories.map((cat) => (
-                            <button
-                                key={cat}
-                                onClick={() => setActiveCategory(cat)}
-                                className={`
-                                    px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold tracking-wide whitespace-nowrap transition-all duration-300 border
-                                    ${activeCategory === cat
-                                        ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white shadow-lg shadow-black/10 dark:shadow-white/10'
-                                        : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-300 hover:text-black hover:bg-white dark:bg-zinc-900/50 dark:text-gray-400 dark:border-white/5 dark:hover:border-white/20 dark:hover:text-white dark:hover:bg-zinc-900'}
-                                `}
-                            >
-                                {t(`categories.${cat.toLowerCase()}`)}
-                            </button>
-                        ))}
+                        {categories.map((cat) => {
+                            // Try to get translation, fallback to capitalized category name
+                            let categoryLabel: string;
+                            try {
+                                categoryLabel = t(`categories.${cat.toLowerCase()}`);
+                                // If translation returns the key itself, use fallback
+                                if (categoryLabel.includes('categories.')) {
+                                    categoryLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
+                                }
+                            } catch {
+                                categoryLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
+                            }
+
+                            return (
+                                <button
+                                    key={cat}
+                                    onClick={() => setActiveCategory(cat)}
+                                    className={`
+                                        px-3 sm:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold tracking-wide whitespace-nowrap transition-all duration-300 border
+                                        ${activeCategory === cat
+                                            ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white shadow-lg shadow-black/10 dark:shadow-white/10'
+                                            : 'bg-gray-100 text-gray-600 border-transparent hover:border-gray-300 hover:text-black hover:bg-white dark:bg-zinc-900/50 dark:text-gray-400 dark:border-white/5 dark:hover:border-white/20 dark:hover:text-white dark:hover:bg-zinc-900'}
+                                    `}
+                                >
+                                    {categoryLabel}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
