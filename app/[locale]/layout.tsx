@@ -22,6 +22,10 @@ const oswald = Oswald({
 export const metadata: Metadata = {
   title: "Gym Wearables Factory | Direct to Consumer",
   description: "High-quality gym gear directly from the factory. Best prices, premium durability.",
+  icons: {
+    icon: '/logo.png', // Use logo as favicon
+    apple: '/logo.png', // Fallback for Apple touch icon
+  },
 };
 
 export default async function RootLayout({
