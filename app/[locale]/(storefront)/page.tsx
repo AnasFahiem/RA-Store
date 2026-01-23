@@ -76,7 +76,7 @@ export default async function Home() {
             <div className="h-1 w-24 bg-accent mx-auto mt-4" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
             {featuredProducts.map((product) => (
               <ProductCard key={product.id} {...product} />
             ))}
@@ -88,7 +88,7 @@ export default async function Home() {
             <div className="h-1 w-24 bg-accent mx-auto mt-4" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
             {adminBundles.length > 0 ? (
               adminBundles.map((bundle: any) => (
                 <BundleCard key={bundle.id} {...bundle} />
