@@ -69,6 +69,9 @@ export default function Search() {
         if (e.key === 'Escape') setIsOpen(false);
     };
 
+    // Check if query is Arabic
+    const isArabic = (text: string) => /[\u0600-\u06FF]/.test(text);
+
     return (
         <div ref={containerRef} className="relative flex items-center">
             <button
@@ -130,7 +133,7 @@ export default function Search() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="text-sm font-medium text-foreground truncate group-hover:text-accent transition-colors">
-                                            {product.name}
+                                            {isArabic(debouncedQuery) && product.name_ar ? product.name_ar : product.name}
                                         </h4>
                                         <div className="flex items-center gap-2 mt-0.5">
                                             <span className="text-xs text-muted-foreground">{product.category || 'Product'}</span>
