@@ -178,7 +178,16 @@
         "noAccount": "Don't have an account?",
         "hasAccount": "Already have an account?",
         "createAccount": "Create Account",
-        "signIn": "Sign In"
+        "signIn": "Sign In",
+        "enterCredentials": "Enter your credentials to access your account",
+        "joinFactory": "Join the Factory",
+        "startJourney": "Create your account and start your journey",
+        "requirements": {
+            "length": "At least 6 characters",
+            "uppercase": "At least one uppercase letter",
+            "number": "At least one number",
+            "special": "At least one special character"
+        }
     },
     "Products": {
         "title": "All Gear",
@@ -220,5 +229,11 @@
             "accessories": "Accessories",
             "wraps": "Wraps"
         }
+    },
+    "About": {
+        "title": "Inside The Factory",
+        "p1": "We started with a simple mission: cut out the middleman. Most gym gear you buy is marked up 300% by big brands who don't touch a sewing machine.",
+        "p2": "We own the machines. We buy the raw leather and neoprene. We stitch every belt and glove.",
+        "p3": "By selling directly to you, we can offer professional grade equipment at prices the big brands can't touch."
     }
 }

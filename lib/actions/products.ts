@@ -11,8 +11,8 @@ export async function searchProducts(query: string) {
 
     const { data, error } = await supabase
         .from('products')
-        .select('id, name, base_price, images, category')
-        .ilike('name', `%${query}%`)
+        .select('id, name, name_ar, base_price, images, category')
+        .or(`name.ilike.%${query}%,name_ar.ilike.%${query}%`)
         .limit(8);
 
     console.log(`[SearchAction] DB Result: ${data?.length} items, Error: ${error?.message}`);

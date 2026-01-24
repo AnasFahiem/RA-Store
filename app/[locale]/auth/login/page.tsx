@@ -44,10 +44,10 @@ export default function LoginPage() {
                             </h1>
                         </Link>
                         <h2 className="text-2xl font-bold text-foreground mb-2">
-                            Welcome Back
+                            {t('loginTitle')}
                         </h2>
                         <p className="text-muted-foreground text-sm">
-                            Enter your credentials to access your account
+                            {t('enterCredentials')}
                         </p>
                     </div>
 
@@ -61,7 +61,7 @@ export default function LoginPage() {
                     >
                         <div className="space-y-4">
                             <div>
-                                <label htmlFor="email" className="sr-only">Email</label>
+                                <label htmlFor="email" className="sr-only">{t('email')}</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <User className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
@@ -76,12 +76,12 @@ export default function LoginPage() {
                                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                                             : 'border-border focus:ring-accent focus:border-accent'
                                             }`}
-                                        placeholder="Email Address"
+                                        placeholder={t('email')}
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="password" className="sr-only">Password</label>
+                                <label htmlFor="password" className="sr-only">{t('password')}</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <Lock className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
@@ -96,7 +96,7 @@ export default function LoginPage() {
                                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                                             : 'border-border focus:ring-accent focus:border-accent'
                                             }`}
-                                        placeholder="Password"
+                                        placeholder={t('password')}
                                     />
                                     <button
                                         type="button"
@@ -129,7 +129,7 @@ export default function LoginPage() {
                                 <Loader2 className="animate-spin h-5 w-5" />
                             ) : (
                                 <>
-                                    Sign In <ArrowRight className="ml-2 w-4 h-4" />
+                                    {t('loginButton')} <ArrowRight className="ml-2 w-4 h-4" />
                                 </>
                             )}
                         </button>
@@ -137,10 +137,11 @@ export default function LoginPage() {
 
                     <div className="mt-8 text-center">
                         <p className="text-sm text-muted-foreground">
-                            Don't have an account?{' '}
+                            {t('noAccount')}{' '}
                             <Link href="/auth/signup" className="font-bold text-foreground hover:text-accent transition-colors">
-                                Create one here
+                                {t('createAccount')}
                             </Link>
+
                         </p>
                     </div>
                 </motion.div>

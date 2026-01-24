@@ -18,10 +18,10 @@ export default function SignupPage() {
 
     // Password requirements
     const requirements = [
-        { label: 'At least 6 characters', valid: password.length >= 6 },
-        { label: 'At least one uppercase letter', valid: /[A-Z]/.test(password) },
-        { label: 'At least one number', valid: /[0-9]/.test(password) },
-        { label: 'At least one special character', valid: /[^A-Za-z0-9]/.test(password) },
+        { label: t('requirements.length'), valid: password.length >= 6 },
+        { label: t('requirements.uppercase'), valid: /[A-Z]/.test(password) },
+        { label: t('requirements.number'), valid: /[0-9]/.test(password) },
+        { label: t('requirements.special'), valid: /[^A-Za-z0-9]/.test(password) },
     ];
 
     const isPasswordValid = requirements.every(r => r.valid);
@@ -56,17 +56,17 @@ export default function SignupPage() {
                             </h1>
                         </Link>
                         <h2 className="text-2xl font-bold text-foreground mb-2">
-                            Join the Factory
+                            {t('joinFactory')}
                         </h2>
                         <p className="text-muted-foreground text-sm">
-                            Create your account and start your journey
+                            {t('startJourney')}
                         </p>
                     </div>
 
                     <form action={action} className="space-y-6">
                         <div className="space-y-4">
                             <div>
-                                <label htmlFor="name" className="sr-only">Full Name</label>
+                                <label htmlFor="name" className="sr-only">{t('name')}</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <User className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
@@ -81,12 +81,12 @@ export default function SignupPage() {
                                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                                             : 'border-border focus:ring-accent focus:border-accent'
                                             }`}
-                                        placeholder="Full Name"
+                                        placeholder={t('name')}
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="email" className="sr-only">Email</label>
+                                <label htmlFor="email" className="sr-only">{t('email')}</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <Mail className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
@@ -101,12 +101,12 @@ export default function SignupPage() {
                                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                                             : 'border-border focus:ring-accent focus:border-accent'
                                             }`}
-                                        placeholder="Email Address"
+                                        placeholder={t('email')}
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="password" className="sr-only">Password</label>
+                                <label htmlFor="password" className="sr-only">{t('password')}</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <Lock className={`h-5 w-5 ${state?.error ? 'text-red-400' : 'text-muted-foreground'}`} />
@@ -126,7 +126,7 @@ export default function SignupPage() {
                                             ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                                             : 'border-border focus:ring-accent focus:border-accent'
                                             }`}
-                                        placeholder="Password"
+                                        placeholder={t('password')}
                                     />
                                     <button
                                         type="button"
@@ -173,7 +173,7 @@ export default function SignupPage() {
                                 <Loader2 className="animate-spin h-5 w-5" />
                             ) : (
                                 <>
-                                    Create Account <ArrowRight className="ml-2 w-4 h-4" />
+                                    {t('signupButton')} <ArrowRight className="ml-2 w-4 h-4" />
                                 </>
                             )}
                         </button>
@@ -181,9 +181,9 @@ export default function SignupPage() {
 
                     <div className="mt-8 text-center">
                         <p className="text-sm text-muted-foreground">
-                            Already have an account?{' '}
+                            {t('hasAccount')}{' '}
                             <Link href="/auth/login" className="font-bold text-foreground hover:text-accent transition-colors">
-                                Sign In
+                                {t('signIn')}
                             </Link>
                         </p>
                     </div>
