@@ -20,7 +20,7 @@ const oswald = Oswald({
 });
 
 export const metadata: Metadata = {
-  title: "Gym Wearables Factory | Direct to Consumer",
+  title: "RA Store",
   description: "High-quality gym gear directly from the factory. Best prices, premium durability.",
 
 };
