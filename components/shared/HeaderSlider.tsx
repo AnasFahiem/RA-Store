@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale } from 'next-intl';
 import type { HeaderSlide, HeaderSettings } from '@/lib/actions/header';
-import './HeaderSlider.css';
 
 interface HeaderSliderProps {
     slides: HeaderSlide[];
@@ -14,6 +13,8 @@ interface HeaderSliderProps {
 export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
     const locale = useLocale();
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [contentWidth, setContentWidth] = useState(0);
+    const measureRef = useRef<HTMLDivElement>(null);
 
     // Default settings
     const globalBg = settings?.background_color || '#5B21B6';
@@ -21,6 +22,23 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
     const height = settings?.height || 40;
     const isActive = settings?.is_active ?? true;
     const animation = settings?.animation || 'marquee';
+
+    const isAr = locale === 'ar';
+
+    // Measure content width
+    useEffect(() => {
+        if (animation !== 'marquee' || !measureRef.current) return;
+
+        const measure = () => {
+            if (measureRef.current) {
+                setContentWidth(measureRef.current.scrollWidth);
+            }
+        };
+
+        setTimeout(measure, 100);
+        window.addEventListener('resize', measure);
+        return () => window.removeEventListener('resize', measure);
+    }, [animation, slides]);
 
     // --- EFFECT FOR FADE ANIMATION ---
     useEffect(() => {
@@ -47,29 +65,13 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
             };
         });
 
-        // Render ONE set of items
-        const MarqueeSet = () => (
-            <>
-                {contentList.map((item, i) => (
-                    <div key={i} className="flex items-center shrink-0">
-                        <span
-                            className={`text-sm font-medium tracking-wide px-3 py-1 rounded-full whitespace-nowrap ${item.bgColor ? 'shadow-sm' : ''}`}
-                            style={{
-                                backgroundColor: item.bgColor || 'transparent',
-                                color: item.textColor || 'inherit'
-                            }}
-                        >
-                            {item.text}
-                        </span>
-                        <span className="mx-6 opacity-50 text-[8px]">•</span>
-                    </div>
-                ))}
-            </>
-        );
+        // Repeat content many times to fill screen
+        const repeatedContent = Array(20).fill(contentList).flat();
 
-        // We repeat the content 6 times to ensure it always fills the screen
-        // The animation moves by 50%, so we need at least 2 identical halves
-        // Using 6 copies (3 in each half) ensures even very short content fills the viewport
+        // Animation: we move exactly by half the total width
+        // The content is duplicated so when we reach -50%, it looks identical to 0%
+        const animationDuration = 28.6; // Slowed to 70% speed
+
         return (
             <div
                 className="w-full overflow-hidden flex items-center relative z-50 border-t border-b"
@@ -80,33 +82,71 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
                     borderColor: globalText
                 }}
             >
-                {/* 
-                    Animation always moves RIGHT to LEFT (content flows <---)
-                    We have 6 copies total (two groups of 3 each)
-                    When it moves 50%, it starts over seamlessly
-                */}
-                <div className={`marquee-track flex items-center ${locale === 'ar' ? 'marquee-rtl' : 'marquee-ltr'}`}>
-                    {/* First half: 3 copies */}
-                    <div className="flex items-center shrink-0">
-                        <MarqueeSet />
-                    </div>
-                    <div className="flex items-center shrink-0">
-                        <MarqueeSet />
-                    </div>
-                    <div className="flex items-center shrink-0">
-                        <MarqueeSet />
-                    </div>
-                    {/* Second half: 3 identical copies */}
-                    <div className="flex items-center shrink-0">
-                        <MarqueeSet />
-                    </div>
-                    <div className="flex items-center shrink-0">
-                        <MarqueeSet />
-                    </div>
-                    <div className="flex items-center shrink-0">
-                        <MarqueeSet />
-                    </div>
+                {/* Measure the first half width */}
+                <div
+                    ref={measureRef}
+                    className="absolute opacity-0 pointer-events-none flex items-center"
+                    aria-hidden="true"
+                >
+                    {repeatedContent.map((item, i) => (
+                        <div key={i} className="flex items-center shrink-0">
+                            <span className="text-sm font-medium tracking-wide px-3 py-1 whitespace-nowrap">
+                                {item.text}
+                            </span>
+                            <span className="mx-6 opacity-50 text-[8px]">•</span>
+                        </div>
+                    ))}
                 </div>
+
+                {/* Animated track */}
+                <motion.div
+                    className="flex items-center whitespace-nowrap"
+                    style={{ width: 'max-content' }}
+                    animate={{
+                        x: isAr
+                            ? [0, contentWidth / 2]   // Arabic: move right (content appears from left)
+                            : [0, -contentWidth / 2]  // English: move left (content appears from right)
+                    }}
+                    transition={{
+                        x: {
+                            duration: animationDuration,
+                            ease: "linear",
+                            repeat: Infinity,
+                            repeatType: "loop"
+                        }
+                    }}
+                >
+                    {/* First copy */}
+                    {repeatedContent.map((item, i) => (
+                        <div key={`a-${i}`} className="flex items-center shrink-0">
+                            <span
+                                className={`text-sm font-medium tracking-wide px-3 py-1 rounded-full whitespace-nowrap ${item.bgColor ? 'shadow-sm' : ''}`}
+                                style={{
+                                    backgroundColor: item.bgColor || 'transparent',
+                                    color: item.textColor || 'inherit'
+                                }}
+                            >
+                                {item.text}
+                            </span>
+                            <span className="mx-6 opacity-50 text-[8px]">•</span>
+                        </div>
+                    ))}
+                    {/* Second copy (identical - for seamless loop) */}
+                    {repeatedContent.map((item, i) => (
+                        <div key={`b-${i}`} className="flex items-center shrink-0">
+                            <span
+                                className={`text-sm font-medium tracking-wide px-3 py-1 rounded-full whitespace-nowrap ${item.bgColor ? 'shadow-sm' : ''}`}
+                                style={{
+                                    backgroundColor: item.bgColor || 'transparent',
+                                    color: item.textColor || 'inherit'
+                                }}
+                            >
+                                {item.text}
+                            </span>
+                            <span className="mx-6 opacity-50 text-[8px]">•</span>
+                        </div>
+                    ))}
+                </motion.div>
             </div>
         );
     }
