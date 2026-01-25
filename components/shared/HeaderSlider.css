@@ -3,16 +3,17 @@
 .marquee-track {
     display: flex;
     width: max-content;
+    will-change: transform;
 }
 
-/* LTR: scroll left */
+/* LTR: scroll left - fast smooth animation */
 .marquee-ltr {
-    animation: marquee-ltr 30s linear infinite;
+    animation: marquee-ltr 12s linear infinite;
 }
 
-/* RTL: scroll right */
+/* RTL: scroll right - fast smooth animation */
 .marquee-rtl {
-    animation: marquee-rtl 30s linear infinite;
+    animation: marquee-rtl 12s linear infinite;
 }
 
 @keyframes marquee-ltr {
