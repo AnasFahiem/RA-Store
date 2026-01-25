@@ -47,7 +47,9 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
             };
         });
 
-        const repeatedList = [...contentList, ...contentList, ...contentList, ...contentList];
+        // Repeat list MORE times to ensure we cover enough width for seamless looping
+        // 12x repeats should be safe for almost any resolution with short text
+        const repeatedList = Array(12).fill(contentList).flat();
 
         const animProps = isAr
             ? { x: ['0%', '-50%'] }
@@ -55,15 +57,15 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
 
         return (
             <div
-                className="w-full overflow-hidden flex items-center relative z-50"
+                className="w-full overflow-hidden flex items-center relative z-50 border-t border-b"
                 style={{
                     backgroundColor: globalBg,
                     color: globalText,
-                    height: `${height}px`
+                    height: `${height}px`,
+                    borderColor: globalText // Frame color = Text Color
                 }}
             >
-                <div className="absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
-                <div className="absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-black/20 to-transparent pointer-events-none" />
+                {/* Removed side gradients for cleaner frame look, can re-add if requested */}
 
                 <motion.div
                     className="flex items-center gap-12 whitespace-nowrap px-4"
@@ -71,7 +73,7 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
                     transition={{
                         repeat: Infinity,
                         ease: "linear",
-                        duration: 20 + (slides.length * 2),
+                        duration: 30 + (slides.length * 5), // Slower, smoother animation
                     }}
                     style={{ width: "fit-content" }}
                 >
@@ -86,8 +88,7 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
                             >
                                 {item.text}
                             </span>
-                            {/* Dot separator only if background not set, otherwise gap is enough? Let's keep dot but transparent if bg set? */}
-                            {/* Actually, if pills are used, dots might look weird. Let's keep dots but make them subtle. */}
+                            {/* Dot separator */}
                             {!item.bgColor && <span className="mx-6 opacity-50 text-[8px]">•</span>}
                         </div>
                     ))}
@@ -106,8 +107,12 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
 
     return (
         <motion.div
-            className="w-full overflow-hidden flex items-center justify-center relative z-50 transition-colors duration-500"
-            animate={{ backgroundColor: activeBg, color: activeText }}
+            className="w-full overflow-hidden flex items-center justify-center relative z-50 transition-colors duration-500 border-t border-b"
+            animate={{
+                backgroundColor: activeBg,
+                color: activeText,
+                borderColor: activeText
+            }}
             style={{
                 height: `${height}px`
             }}
