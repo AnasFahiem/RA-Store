@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { verifySession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod'; // Ensure zod is installed or use manual validation
 
 async function getProfile(userId: string) {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data: user, error } = await supabase
         .from('users')
         .select('name, email')
