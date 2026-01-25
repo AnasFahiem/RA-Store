@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale } from 'next-intl';
 import type { HeaderSlide, HeaderSettings } from '@/lib/actions/header';
+import './HeaderSlider.css';
 
 interface HeaderSliderProps {
     slides: HeaderSlide[];
@@ -38,22 +39,35 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
 
     // --- MARQUEE RENDER ---
     if (animation === 'marquee') {
+        // Build the content list from slides
         const contentList = slides.map(s => {
             const text = (locale === 'ar' && s.content_ar) ? s.content_ar : s.content;
             return {
                 text,
-                bgColor: s.background_color, // optional override
-                textColor: s.text_color      // optional override
+                bgColor: s.background_color,
+                textColor: s.text_color
             };
         });
 
-        // Repeat list MORE times to ensure we cover enough width for seamless looping
-        // 12x repeats should be safe for almost any resolution with short text
-        const repeatedList = Array(12).fill(contentList).flat();
-
-        const animProps = isAr
-            ? { x: ['0%', '-50%'] }
-            : { x: ['-50%', '0%'] };
+        // Render ONE set of items as a component
+        const MarqueeSet = () => (
+            <>
+                {contentList.map((item, i) => (
+                    <div key={i} className="flex items-center shrink-0">
+                        <span
+                            className={`text-sm font-medium tracking-wide px-3 py-1 rounded-full whitespace-nowrap ${item.bgColor ? 'shadow-sm' : ''}`}
+                            style={{
+                                backgroundColor: item.bgColor || 'transparent',
+                                color: item.textColor || 'inherit'
+                            }}
+                        >
+                            {item.text}
+                        </span>
+                        <span className="mx-6 opacity-50 text-[8px]">•</span>
+                    </div>
+                ))}
+            </>
+        );
 
         return (
             <div
@@ -62,37 +76,24 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
                     backgroundColor: globalBg,
                     color: globalText,
                     height: `${height}px`,
-                    borderColor: globalText // Frame color = Text Color
+                    borderColor: globalText
                 }}
             >
-                {/* Removed side gradients for cleaner frame look, can re-add if requested */}
-
-                <motion.div
-                    className="flex items-center gap-12 whitespace-nowrap px-4"
-                    animate={animProps}
-                    transition={{
-                        repeat: Infinity,
-                        ease: "linear",
-                        duration: 30 + (slides.length * 5), // Slower, smoother animation
-                    }}
-                    style={{ width: "fit-content" }}
-                >
-                    {repeatedList.map((item, i) => (
-                        <div key={i} className="flex items-center">
-                            <span
-                                className={`text-sm font-medium tracking-wide px-3 py-1 rounded-full ${item.bgColor ? 'shadow-sm' : ''}`}
-                                style={{
-                                    backgroundColor: item.bgColor || 'transparent',
-                                    color: item.textColor || 'inherit'
-                                }}
-                            >
-                                {item.text}
-                            </span>
-                            {/* Dot separator */}
-                            {!item.bgColor && <span className="mx-6 opacity-50 text-[8px]">•</span>}
-                        </div>
-                    ))}
-                </motion.div>
+                {/* 
+                    The trick: We have TWO identical copies of the content.
+                    The animation moves the track by exactly 50% (one copy's worth).
+                    When it loops, it's visually identical = seamless infinite scroll.
+                */}
+                <div className={`marquee-track flex items-center ${isAr ? 'marquee-rtl' : 'marquee-ltr'}`}>
+                    {/* First copy */}
+                    <div className="flex items-center shrink-0">
+                        <MarqueeSet />
+                    </div>
+                    {/* Second copy (identical) */}
+                    <div className="flex items-center shrink-0">
+                        <MarqueeSet />
+                    </div>
+                </div>
             </div>
         );
     }
@@ -100,8 +101,6 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
     // --- FADE RENDER ---
     const currentSlide = slides[currentIndex];
     const content = (locale === 'ar' && currentSlide.content_ar) ? currentSlide.content_ar : currentSlide.content;
-
-    // For fade, we animate the container background too if specific color is set
     const activeBg = currentSlide.background_color || globalBg;
     const activeText = currentSlide.text_color || globalText;
 
