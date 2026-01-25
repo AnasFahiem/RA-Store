@@ -7,7 +7,7 @@ const key = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const cookie = {
     name: 'session',
-    options: { httpOnly: true, secure: true, sameSite: 'lax', path: '/' },
+    options: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' },
     duration: 24 * 60 * 60 * 1000,
 };
 
