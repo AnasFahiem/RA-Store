@@ -37,8 +37,13 @@ export default function AdminHeroPage() {
     // Header Slider State
     const [headerSlides, setHeaderSlides] = useState<HeaderSlide[]>([]);
     const [headerSettings, setHeaderSettings] = useState<HeaderSettings | null>(null);
+
+    // Add Slide Form State
     const [newHeaderContent, setNewHeaderContent] = useState('');
     const [newHeaderContentAr, setNewHeaderContentAr] = useState('');
+    const [newSlideBg, setNewSlideBg] = useState(''); // Empty string = use global
+    const [newSlideText, setNewSlideText] = useState(''); // Empty string = use global
+
     const [headerLoading, setHeaderLoading] = useState(true);
 
     useEffect(() => {
@@ -49,7 +54,7 @@ export default function AdminHeroPage() {
         try {
             const [heroData, headerSlidesData, headerSettingsData] = await Promise.all([
                 getHeroSlides(),
-                getAllHeaderSlides(), // Get all including inactive if needed, but for now just all
+                getAllHeaderSlides(),
                 getHeaderSettings()
             ]);
             setHeroSlides(heroData);
@@ -64,7 +69,7 @@ export default function AdminHeroPage() {
     }
 
     // --- Hero Slider Handlers ---
-
+    // ... (unchanged)
     const handleImageUpload = async (url: string) => {
         if (!url) return;
         setUploading(true);
@@ -117,6 +122,7 @@ export default function AdminHeroPage() {
         router.refresh();
     };
 
+
     // --- Header Slider Handlers ---
 
     const handleAddHeaderSlide = async (e: React.FormEvent) => {
@@ -124,10 +130,19 @@ export default function AdminHeroPage() {
         if (!newHeaderContent) return;
 
         try {
-            const result = await addHeaderSlide(newHeaderContent, newHeaderContentAr);
+            const result = await addHeaderSlide(
+                newHeaderContent,
+                newHeaderContentAr,
+                newSlideBg || undefined,
+                newSlideText || undefined
+            );
+
             if (result.success) {
                 setNewHeaderContent('');
                 setNewHeaderContentAr('');
+                setNewSlideBg('');
+                setNewSlideText('');
+
                 const updatedSlides = await getAllHeaderSlides();
                 setHeaderSlides(updatedSlides);
                 router.refresh();
@@ -154,7 +169,8 @@ export default function AdminHeroPage() {
             await updateHeaderSettings({
                 background_color: headerSettings.background_color,
                 text_color: headerSettings.text_color,
-                is_active: headerSettings.is_active
+                is_active: headerSettings.is_active,
+                animation: headerSettings.animation
             });
             alert('Settings saved!');
             router.refresh();
@@ -257,9 +273,27 @@ export default function AdminHeroPage() {
                     <div className="lg:col-span-1 space-y-6">
                         {/* Settings */}
                         <div className="bg-white/5 p-6 rounded-xl border border-white/10">
-                            <h2 className="text-xl font-bold mb-4 text-white">Settings</h2>
+                            <h2 className="text-xl font-bold mb-4 text-white">Global Settings</h2>
                             {headerSettings && (
                                 <div className="space-y-4">
+                                    {/* Animation Selector */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-400 mb-1">Animation Style</label>
+                                        <select
+                                            value={headerSettings.animation || 'marquee'}
+                                            onChange={(e) => setHeaderSettings({ ...headerSettings, animation: e.target.value as 'marquee' | 'fade' })}
+                                            className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-accent"
+                                        >
+                                            <option value="marquee">Marquee (Scrolling)</option>
+                                            <option value="fade">Fade (Switching)</option>
+                                        </select>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {headerSettings.animation === 'marquee'
+                                                ? 'Slides scroll continuously across the screen.'
+                                                : 'Slides fade in and out one by one.'}
+                                        </p>
+                                    </div>
+
                                     <div>
                                         <label className="block text-sm font-medium text-gray-400 mb-1">Background Color</label>
                                         <div className="flex gap-2">
@@ -309,7 +343,7 @@ export default function AdminHeroPage() {
                                         className="w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent/90 text-white py-2 px-4 rounded-md transition-colors font-medium"
                                     >
                                         <Save className="w-4 h-4" />
-                                        Save Settings
+                                        Save Global Settings
                                     </button>
                                 </div>
                             )}
@@ -319,26 +353,66 @@ export default function AdminHeroPage() {
                         <div className="bg-white/5 p-6 rounded-xl border border-white/10">
                             <h2 className="text-xl font-bold mb-4 text-white">Add Header Slide</h2>
                             <form onSubmit={handleAddHeaderSlide} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">Content (English)</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={newHeaderContent}
-                                        onChange={(e) => setNewHeaderContent(e.target.value)}
-                                        className="w-full bg-black/20 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:border-accent"
-                                        placeholder="Free shipping..."
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-400 mb-1">Content (Arabic)</label>
-                                    <input
-                                        type="text"
-                                        value={newHeaderContentAr}
-                                        onChange={(e) => setNewHeaderContentAr(e.target.value)}
-                                        className="w-full bg-black/20 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:border-accent text-right"
-                                        placeholder="شحن مجاني..."
-                                    />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="col-span-full">
+                                        <label className="block text-sm font-medium text-gray-400 mb-1">Content (English)</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={newHeaderContent}
+                                            onChange={(e) => setNewHeaderContent(e.target.value)}
+                                            className="w-full bg-black/20 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:border-accent"
+                                            placeholder="Free shipping..."
+                                        />
+                                    </div>
+                                    <div className="col-span-full">
+                                        <label className="block text-sm font-medium text-gray-400 mb-1">Content (Arabic)</label>
+                                        <input
+                                            type="text"
+                                            value={newHeaderContentAr}
+                                            onChange={(e) => setNewHeaderContentAr(e.target.value)}
+                                            className="w-full bg-black/20 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:border-accent text-right"
+                                            placeholder="شحن مجاني..."
+                                        />
+                                    </div>
+
+                                    {/* Optional Per-Slide Colors */}
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Slide Background (Opt)</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="color"
+                                                value={newSlideBg || '#000000'}
+                                                onChange={(e) => setNewSlideBg(e.target.value)}
+                                                className="h-8 w-10 rounded bg-transparent border border-white/20 p-0.5"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewSlideBg('')}
+                                                className="text-xs text-gray-400 hover:text-white underline"
+                                            >
+                                                Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Slide Text (Opt)</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="color"
+                                                value={newSlideText || '#ffffff'}
+                                                onChange={(e) => setNewSlideText(e.target.value)}
+                                                className="h-8 w-10 rounded bg-transparent border border-white/20 p-0.5"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewSlideText('')}
+                                                className="text-xs text-gray-400 hover:text-white underline"
+                                            >
+                                                Clear
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <button
                                     type="submit"
@@ -363,9 +437,24 @@ export default function AdminHeroPage() {
                                 <div className="space-y-3">
                                     {headerSlides.map((slide) => (
                                         <div key={slide.id} className="flex items-center justify-between bg-black/20 p-4 rounded-lg border border-white/5">
-                                            <div className="space-y-1">
-                                                <p className="text-white font-medium">{slide.content}</p>
-                                                {slide.content_ar && <p className="text-gray-400 text-sm dir-rtl">{slide.content_ar}</p>}
+                                            <div className="flex items-center gap-3">
+                                                {/* Color Indicator */}
+                                                <div
+                                                    className="w-6 h-6 rounded-full border border-white/20 shadow-sm"
+                                                    style={{
+                                                        backgroundColor: slide.background_color || 'transparent',
+                                                        backgroundImage: !slide.background_color ?
+                                                            'linear-gradient(45deg, transparent 25%, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.1) 50%, transparent 50%, transparent 75%, rgba(255,255,255,0.1) 75%, rgba(255,255,255,0.1) 100%)'
+                                                            : undefined,
+                                                        backgroundSize: '10px 10px'
+                                                    }}
+                                                    title={slide.background_color ? `Bg: ${slide.background_color}` : 'Default Global Color'}
+                                                />
+
+                                                <div className="space-y-1">
+                                                    <p className="text-white font-medium" style={{ color: slide.text_color || undefined }}>{slide.content}</p>
+                                                    {slide.content_ar && <p className="text-gray-400 text-sm dir-rtl">{slide.content_ar}</p>}
+                                                </div>
                                             </div>
                                             <button
                                                 onClick={() => handleDeleteHeader(slide.id)}

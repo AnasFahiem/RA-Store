@@ -9,6 +9,8 @@ export interface HeaderSlide {
     content_ar: string | null;
     active: boolean;
     sort_order: number;
+    background_color?: string | null;
+    text_color?: string | null;
 }
 
 export interface HeaderSettings {
@@ -17,6 +19,7 @@ export interface HeaderSettings {
     text_color: string;
     height: number;
     is_active: boolean;
+    animation: 'marquee' | 'fade';
 }
 
 export async function getHeaderSlides() {
@@ -65,7 +68,8 @@ export async function getHeaderSettings() {
                 background_color: '#5B21B6',
                 text_color: '#FFFFFF',
                 height: 40,
-                is_active: true
+                is_active: true,
+                animation: 'marquee'
             } as HeaderSettings;
         }
         console.error('Error fetching header settings:', error);
@@ -75,7 +79,7 @@ export async function getHeaderSettings() {
     return data as HeaderSettings;
 }
 
-export async function addHeaderSlide(content: string, contentAr: string) {
+export async function addHeaderSlide(content: string, contentAr: string, backgroundColor?: string, textColor?: string) {
     const supabaseAdmin = createAdminClient();
 
     // Get max sort order
@@ -94,7 +98,9 @@ export async function addHeaderSlide(content: string, contentAr: string) {
             content,
             content_ar: contentAr,
             sort_order: nextOrder,
-            active: true
+            active: true,
+            background_color: backgroundColor || null,
+            text_color: textColor || null
         }])
         .select()
         .single();
