@@ -22,8 +22,6 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
     const isActive = settings?.is_active ?? true;
     const animation = settings?.animation || 'marquee';
 
-    const isAr = locale === 'ar';
-
     // --- EFFECT FOR FADE ANIMATION ---
     useEffect(() => {
         if (animation !== 'fade' || slides.length <= 1) return;
@@ -49,7 +47,7 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
             };
         });
 
-        // Render ONE set of items as a component
+        // Render ONE set of items
         const MarqueeSet = () => (
             <>
                 {contentList.map((item, i) => (
@@ -69,6 +67,9 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
             </>
         );
 
+        // We repeat the content 6 times to ensure it always fills the screen
+        // The animation moves by 50%, so we need at least 2 identical halves
+        // Using 6 copies (3 in each half) ensures even very short content fills the viewport
         return (
             <div
                 className="w-full overflow-hidden flex items-center relative z-50 border-t border-b"
@@ -80,16 +81,28 @@ export default function HeaderSlider({ slides, settings }: HeaderSliderProps) {
                 }}
             >
                 {/* 
-                    The trick: We have TWO identical copies of the content.
-                    The animation moves the track by exactly 50% (one copy's worth).
-                    When it loops, it's visually identical = seamless infinite scroll.
+                    Animation always moves RIGHT to LEFT (content flows <---)
+                    We have 6 copies total (two groups of 3 each)
+                    When it moves 50%, it starts over seamlessly
                 */}
-                <div className={`marquee-track flex items-center ${isAr ? 'marquee-rtl' : 'marquee-ltr'}`}>
-                    {/* First copy */}
+                <div className={`marquee-track flex items-center ${locale === 'ar' ? 'marquee-rtl' : 'marquee-ltr'}`}>
+                    {/* First half: 3 copies */}
                     <div className="flex items-center shrink-0">
                         <MarqueeSet />
                     </div>
-                    {/* Second copy (identical) */}
+                    <div className="flex items-center shrink-0">
+                        <MarqueeSet />
+                    </div>
+                    <div className="flex items-center shrink-0">
+                        <MarqueeSet />
+                    </div>
+                    {/* Second half: 3 identical copies */}
+                    <div className="flex items-center shrink-0">
+                        <MarqueeSet />
+                    </div>
+                    <div className="flex items-center shrink-0">
+                        <MarqueeSet />
+                    </div>
                     <div className="flex items-center shrink-0">
                         <MarqueeSet />
                     </div>

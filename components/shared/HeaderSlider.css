@@ -6,32 +6,32 @@
     will-change: transform;
 }
 
-/* LTR: scroll left - fast smooth animation */
+/* LTR (English): scroll from LEFT to RIGHT (--->) */
 .marquee-ltr {
-    animation: marquee-ltr 12s linear infinite;
+    animation: marquee-ltr 20s linear infinite;
 }
 
-/* RTL: scroll right - fast smooth animation */
+/* RTL (Arabic): scroll from RIGHT to LEFT (<---) */
 .marquee-rtl {
-    animation: marquee-rtl 12s linear infinite;
+    animation: marquee-rtl 20s linear infinite;
 }
 
 @keyframes marquee-ltr {
     0% {
-        transform: translateX(0);
+        transform: translateX(-50%);
     }
 
     100% {
-        transform: translateX(-50%);
+        transform: translateX(0);
     }
 }
 
 @keyframes marquee-rtl {
     0% {
-        transform: translateX(-50%);
+        transform: translateX(0);
     }
 
     100% {
-        transform: translateX(0);
+        transform: translateX(-50%);
     }
 }
