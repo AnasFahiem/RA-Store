@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { verifySession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -6,7 +6,7 @@ import { Package } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/format';
 
 async function getOrders(userId: string) {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data: orders, error } = await supabase
         .from('orders')
         .select('*')
@@ -59,8 +59,8 @@ export default async function OrdersPage() {
                                 </h3>
                                 <div className="mt-2 flex gap-2">
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.status === 'Delivered' ? 'bg-green-900/50 text-green-400 border border-green-800' :
-                                            order.status === 'Shipped' ? 'bg-blue-900/50 text-blue-400 border border-blue-800' :
-                                                'bg-yellow-900/50 text-yellow-400 border border-yellow-800'
+                                        order.status === 'Shipped' ? 'bg-blue-900/50 text-blue-400 border border-blue-800' :
+                                            'bg-yellow-900/50 text-yellow-400 border border-yellow-800'
                                         }`}>
                                         {order.status}
                                     </span>

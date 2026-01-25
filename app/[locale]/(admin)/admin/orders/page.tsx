@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Package, Truck, CheckCircle, AlertCircle } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { formatCurrency } from '@/lib/utils/format';
 
 async function getOrders() {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data: orders } = await supabase
         .from('orders')
         .select('*')

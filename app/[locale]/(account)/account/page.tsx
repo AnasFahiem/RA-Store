@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { verifySession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -6,18 +6,25 @@ import Link from 'next/link';
 import { Package, User, Clock, ChevronRight } from 'lucide-react';
 
 async function getUserData(userId: string) {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
+
+    // 1. Get User Profile
     const { data: user } = await supabase.from('users').select('name').eq('id', userId).single();
+
+    // 2. Get Recent Orders
     const { data: orders } = await supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(3);
 
-    return { user, orders: orders || [] };
+    // 3. Get Total Order Count
+    const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('user_id', userId);
+
+    return { user, orders: orders || [], totalOrders: count || 0 };
 }
 
 export default async function AccountOverviewPage() {
     const session = await verifySession();
     if (!session) redirect('/auth/login');
 
-    const { user, orders } = await getUserData(session.userId);
+    const { user, orders, totalOrders } = await getUserData(session.userId);
 
     const t = await getTranslations('Account');
 
@@ -42,7 +49,7 @@ export default async function AccountOverviewPage() {
                         </div>
                         <div>
                             <p className="text-sm text-gray-400">{t('totalOrders')}</p>
-                            <p className="text-2xl font-bold text-white">{orders.length}</p>
+                            <p className="text-2xl font-bold text-white">{totalOrders}</p>
                         </div>
                     </div>
                 </div>

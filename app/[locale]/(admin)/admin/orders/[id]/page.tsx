@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { updateOrderStatus } from '@/lib/actions/order-management';
 import Link from 'next/link';
 import { ArrowLeft, Package, Truck, CheckCircle, Clock } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
 async function getOrder(id: string) {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data: order } = await supabase
         .from('orders')
         .select('*, users(name, email)') // Keep the join for user info
