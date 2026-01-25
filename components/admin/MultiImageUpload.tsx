@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { uploadImage } from '@/lib/actions/upload'; // Server Action
-import { supabase } from '@/lib/supabase';
+
 import { Upload, X, Loader2, Star, AlertCircle, Trash2 } from 'lucide-react';
 
 interface MultiImageUploadProps {
@@ -76,11 +76,19 @@ export default function MultiImageUpload({ defaultImages = [], onImagesChange }:
         <div className="space-y-6">
             <div
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                    }
+                }}
+                role="button"
+                tabIndex={0}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
                 className={`
                     relative w-full h-40 rounded-xl border-2 border-dashed 
-                    flex flex-col items-center justify-center cursor-pointer transition-all duration-200
+                    flex flex-col items-center justify-center cursor-pointer transition-all duration-200 outline-none focus:ring-2 focus:ring-accent focus:border-accent
                     ${isUploading
                         ? 'border-accent bg-accent/5 cursor-wait'
                         : 'border-white/20 hover:border-accent/50 hover:bg-white/5'

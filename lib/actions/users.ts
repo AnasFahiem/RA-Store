@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { verifySession } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
@@ -9,6 +9,8 @@ export async function getUsers() {
     if (session.role !== 'admin' && session.role !== 'owner') {
         throw new Error('Unauthorized');
     }
+
+    const supabase = await createClient();
 
     const { data: users, error } = await supabase
         .from('users')
@@ -25,6 +27,8 @@ export async function updateUserRole(userId: string, newRole: 'customer' | 'admi
         throw new Error('Unauthorized');
     }
 
+    const supabase = await createClient();
+
     const { error } = await supabase
         .from('users')
         .update({ role: newRole })
@@ -39,6 +43,8 @@ export async function deleteUser(userId: string) {
     if (session.role !== 'owner') {
         throw new Error('Unauthorized');
     }
+
+    const supabase = await createClient();
 
     const { error } = await supabase
         .from('users')

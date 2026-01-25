@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import ProductView from '@/components/storefront/ProductView';
 
 interface Props {
@@ -11,6 +11,8 @@ interface Props {
 
 export default async function ProductPage({ params }: Props) {
     const { id } = await params;
+
+    const supabase = await createClient();
 
     const { data: product } = await supabase
         .from('products')

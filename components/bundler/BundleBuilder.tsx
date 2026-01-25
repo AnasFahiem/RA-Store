@@ -17,18 +17,18 @@ interface Product {
 }
 
 interface DiscountRule {
-    id: string;
-    name: string;
-    min_quantity: number;
-    discount_type: 'percentage' | 'fixed';
-    discount_value: number;
-    required_category?: string;
+    readonly id: string;
+    readonly name: string;
+    readonly min_quantity: number;
+    readonly discount_type: 'percentage' | 'fixed';
+    readonly discount_value: number;
+    readonly required_category?: string;
 }
 
 interface BundleBuilderProps {
-    products: Product[];
-    discountRules: DiscountRule[];
-    adminBundles: any[]; // For suggestions
+    readonly products: Product[];
+    readonly discountRules: DiscountRule[];
+    readonly adminBundles: any[]; // For suggestions
 }
 
 export default function BundleBuilder({ products, discountRules, adminBundles }: BundleBuilderProps) {
@@ -148,15 +148,15 @@ export default function BundleBuilder({ products, discountRules, adminBundles }:
 
         adminBundles.forEach(bundle => {
             const bundleProductIds = bundle.items.map((i: any) => i.product.id);
-            const userProductIds = selectedItems.map(i => i.product.id);
+            const userProductIds = new Set(selectedItems.map(i => i.product.id));
 
             // Check intersection
-            const hasOverlap = bundleProductIds.some((id: string) => userProductIds.includes(id));
+            const hasOverlap = bundleProductIds.some((id: string) => userProductIds.has(id));
 
             if (hasOverlap) {
                 // Find items in bundle NOT in user selection
                 const newItems = bundle.items
-                    .filter((i: any) => !userProductIds.includes(i.product.id))
+                    .filter((i: any) => !userProductIds.has(i.product.id))
                     .map((i: any) => ({
                         id: i.product.id,
                         name: i.product.name,

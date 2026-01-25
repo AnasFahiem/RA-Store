@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from '@/lib/navigation';
+import { useRouter, Link } from '@/lib/navigation';
 import { getAllProducts } from '@/lib/actions/products';
 import { createBundle } from '@/lib/actions/bundleActions';
 import Image from 'next/image';
 import { Plus, Minus, Save, ArrowLeft } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/format';
-import { Link } from '@/lib/navigation';
 
 export default function CreateBundlePage() {
     const [products, setProducts] = useState<any[]>([]);
@@ -63,7 +62,7 @@ export default function CreateBundlePage() {
             type: 'admin_fixed',
             items: selectedItems,
             image: imageUrl || null,
-            priceOverride: priceOverride ? parseFloat(priceOverride) : undefined
+            priceOverride: priceOverride ? Number.parseFloat(priceOverride) : undefined
         });
 
         if (result.success) {

@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { verifySession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
@@ -13,7 +13,7 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
         return { error: 'Unauthorized' };
     }
 
-    const { data: updatedOrder, error } = await supabase
+    const { data: updatedOrder, error } = await (await createClient())
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)

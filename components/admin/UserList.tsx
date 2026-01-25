@@ -13,7 +13,7 @@ type UserData = {
     created_at: string;
 };
 
-export default function UserList({ initialUsers, currentUserRole }: { initialUsers: UserData[], currentUserRole: string }) {
+export default function UserList({ initialUsers, currentUserRole }: { readonly initialUsers: UserData[], readonly currentUserRole: string }) {
     const [users, setUsers] = useState(initialUsers);
     const [loading, setLoading] = useState<string | null>(null);
     const t = useTranslations('Admin');

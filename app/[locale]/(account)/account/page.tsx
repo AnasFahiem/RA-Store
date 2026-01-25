@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { verifySession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Package, User, Clock, ChevronRight } from 'lucide-react';
 
 async function getUserData(userId: string) {
+    const supabase = await createClient();
     const { data: user } = await supabase.from('users').select('name').eq('id', userId).single();
     const { data: orders } = await supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(3);
 
@@ -76,12 +77,18 @@ export default async function AccountOverviewPage() {
                                     <p className="text-sm text-gray-400">{new Date(order.created_at).toLocaleDateString()}</p>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                    ${order.status === 'Delivered' ? 'bg-green-900/30 text-green-400' :
-                                            order.status === 'Shipped' ? 'bg-blue-900/30 text-blue-400' :
-                                                'bg-yellow-900/30 text-yellow-400'}`}>
-                                        {order.status}
-                                    </span>
+                                    {(() => {
+                                        const statusClasses = order.status === 'Delivered'
+                                            ? 'bg-green-900/30 text-green-400'
+                                            : order.status === 'Shipped'
+                                                ? 'bg-blue-900/30 text-blue-400'
+                                                : 'bg-yellow-900/30 text-yellow-400';
+                                        return (
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
+                                                {order.status}
+                                            </span>
+                                        );
+                                    })()}
                                     <span className="text-white font-medium">${order.total_amount}</span>
                                 </div>
                             </div>

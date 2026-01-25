@@ -1,14 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from '@/lib/navigation';
+import { useState, useEffect, use } from 'react';
+import { useRouter, Link } from '@/lib/navigation';
 import { getAllProducts } from '@/lib/actions/products';
 import { getBundleById, updateBundle } from '@/lib/actions/bundleActions';
 import Image from 'next/image';
 import { Plus, Minus, Save, ArrowLeft, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/format';
-import { Link } from '@/lib/navigation';
-import { use } from 'react';
 
 export default function EditBundlePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -89,7 +87,7 @@ export default function EditBundlePage({ params }: { params: Promise<{ id: strin
             type: 'admin_fixed',
             items: selectedItems,
             image: imageUrl || null,
-            priceOverride: priceOverride ? parseFloat(priceOverride) : undefined
+            priceOverride: priceOverride ? Number.parseFloat(priceOverride) : undefined
         });
 
         if (result.success) {

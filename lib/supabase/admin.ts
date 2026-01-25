@@ -1,3 +1,4 @@
+import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -16,6 +17,3 @@ export const createAdminClient = () => {
         },
     });
 };
-
-// @ts-ignore
-export const adminClient = null; // Deprecate direct export to force function usage for safety

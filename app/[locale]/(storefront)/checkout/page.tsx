@@ -83,7 +83,11 @@ export default function CheckoutPage() {
             saveAddress: shouldSaveAddress // Only relevant for new address
         };
 
-        if (selectedAddressId !== 'new') {
+        if (selectedAddressId === 'new') {
+            submitData.address = formData.get('address');
+            submitData.city = formData.get('city');
+            submitData.saveAddress = shouldSaveAddress;
+        } else {
             const addr = savedAddresses.find(a => a.id === selectedAddressId);
             if (!addr) {
                 setError("Selected address not found");
@@ -92,10 +96,6 @@ export default function CheckoutPage() {
             }
             submitData.address = addr.address_line;
             submitData.city = addr.city;
-        } else {
-            submitData.address = formData.get('address');
-            submitData.city = formData.get('city');
-            submitData.saveAddress = shouldSaveAddress;
         }
 
         try {
@@ -175,17 +175,17 @@ export default function CheckoutPage() {
                         {/* Contact Form Fields */}
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Full Name</label>
-                                <input required name="name" type="text" value={contactInfo.name} onChange={e => setContactInfo({ ...contactInfo, name: e.target.value })} className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="John Doe" />
+                                <label htmlFor="checkout-name" className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Full Name</label>
+                                <input id="checkout-name" required name="name" type="text" value={contactInfo.name} onChange={e => setContactInfo({ ...contactInfo, name: e.target.value })} className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="John Doe" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Email Address</label>
-                                    <input required name="email" type="email" value={contactInfo.email} onChange={e => setContactInfo({ ...contactInfo, email: e.target.value })} className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="john@example.com" />
+                                    <label htmlFor="checkout-email" className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Email Address</label>
+                                    <input id="checkout-email" required name="email" type="email" value={contactInfo.email} onChange={e => setContactInfo({ ...contactInfo, email: e.target.value })} className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="john@example.com" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Phone Number</label>
-                                    <input required name="phone" type="tel" value={contactInfo.phone} onChange={e => setContactInfo({ ...contactInfo, phone: e.target.value })} className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="+20 123 456 7890" />
+                                    <label htmlFor="checkout-phone" className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Phone Number</label>
+                                    <input id="checkout-phone" required name="phone" type="tel" value={contactInfo.phone} onChange={e => setContactInfo({ ...contactInfo, phone: e.target.value })} className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="+20 123 456 7890" />
                                 </div>
                             </div>
                         </div>
@@ -223,17 +223,17 @@ export default function CheckoutPage() {
                                 {selectedAddressId === 'new' && (
                                     <div className="mt-4 pl-8 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Street Address</label>
-                                            <input required={selectedAddressId === 'new'} name="address" type="text" className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="123 Main St" />
+                                            <label htmlFor="checkout-address" className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Street Address</label>
+                                            <input id="checkout-address" required={selectedAddressId === 'new'} name="address" type="text" className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="123 Main St" />
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">City</label>
-                                                <input required={selectedAddressId === 'new'} name="city" type="text" className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="Cairo" />
+                                                <label htmlFor="checkout-city" className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">City</label>
+                                                <input id="checkout-city" required={selectedAddressId === 'new'} name="city" type="text" className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="Cairo" />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Postal Code (Optional)</label>
-                                                <input name="zip" type="text" className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="11311" />
+                                                <label htmlFor="checkout-zip" className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Postal Code (Optional)</label>
+                                                <input id="checkout-zip" name="zip" type="text" className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="11311" />
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">

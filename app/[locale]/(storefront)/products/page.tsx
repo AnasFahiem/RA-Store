@@ -1,9 +1,10 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { getAdminBundles } from '@/lib/actions/bundleActions';
 import ProductFeed from '@/components/storefront/ProductFeed';
 import { getTranslations } from 'next-intl/server';
 
 async function getProducts() {
+    const supabase = await createClient();
     const { data } = await supabase.from('products').select('*');
 
     if (!data) return [];

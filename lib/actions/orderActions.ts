@@ -1,6 +1,6 @@
 'use server';
 
-import { supabaseAdmin } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sendOrderEmail } from '@/lib/email';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -30,6 +30,8 @@ export async function getSavedAddresses() {
         return [];
     }
 
+    const supabaseAdmin = createAdminClient();
+
     const { data: addresses, error } = await supabaseAdmin
         .from('addresses')
         .select('*')
@@ -49,6 +51,8 @@ export async function getSavedAddresses() {
 export async function getUserProfile() {
     const session = await getSession();
     if (!session?.userId) return null;
+
+    const supabaseAdmin = createAdminClient();
 
     const { data: user } = await supabaseAdmin
         .from('users')
@@ -93,6 +97,9 @@ export async function placeOrder(formData: any) {
 
     // Save address if requested and user is logged in
     console.log('PlaceOrder Debug:', { saveAddress, userId: session?.userId });
+
+    const supabaseAdmin = createAdminClient();
+
     if (saveAddress && session?.userId) {
         console.log('Attempting to save address...');
         const { error: addressError } = await supabaseAdmin

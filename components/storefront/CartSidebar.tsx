@@ -11,16 +11,7 @@ import { useEffect, useState } from "react";
 
 export default function CartSidebar() {
     const { isCartOpen, closeCart, items, updateQuantity, removeFromCart, removeBundle, subtotal } = useCart();
-    // Safe translation handling - usually t() calls are hook based
-    // If 'Cart' namespace doesn't exist, we might get keys. 
-    // We'll assume it exists or fallback is acceptable for now.
-    let t;
-    try {
-        t = useTranslations('Cart');
-    } catch (e) {
-        // Fallback if useTranslations fails (e.g. no provider context in some edge cases, but here we are in app)
-        t = (key: string) => key;
-    }
+    const t = useTranslations('Cart');
 
     // Mounted check to prevent hydration mismatch for portal/conditional rendering
     const [mounted, setMounted] = useState(false);

@@ -20,10 +20,11 @@ interface AdminSidebarProps {
     };
 }
 
-export default function AdminSidebar({ translations }: AdminSidebarProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const pathname = usePathname();
-
+function SidebarContent({ translations, pathname, setIsOpen }: {
+    readonly translations: any;
+    readonly pathname: string;
+    readonly setIsOpen: (open: boolean) => void;
+}) {
     const navLinks = [
         { href: '/admin/dashboard', label: translations.dashboard, icon: LayoutDashboard },
         { href: '/admin/orders', label: translations.orders, icon: ShoppingCart },
@@ -33,13 +34,12 @@ export default function AdminSidebar({ translations }: AdminSidebarProps) {
         { href: '/admin/users', label: translations.users, icon: Users },
     ];
 
-    const SidebarContent = () => (
+    return (
         <>
             <div className="p-4 md:p-6 border-b border-white/5 flex items-center justify-between">
                 <h2 className="text-lg md:text-xl font-bold font-heading uppercase tracking-wider text-accent">
                     {translations.panel}
                 </h2>
-                {/* Close button for mobile */}
                 <button
                     onClick={() => setIsOpen(false)}
                     className="md:hidden p-2 text-gray-400 hover:text-white"
@@ -59,8 +59,8 @@ export default function AdminSidebar({ translations }: AdminSidebarProps) {
                             href={link.href}
                             onClick={() => setIsOpen(false)}
                             className={`flex items-center gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-md text-sm md:text-base transition-colors ${isActive
-                                    ? 'bg-accent/20 text-accent'
-                                    : 'text-gray-400 hover:bg-black/50 hover:text-white'
+                                ? 'bg-accent/20 text-accent'
+                                : 'text-gray-400 hover:bg-black/50 hover:text-white'
                                 }`}
                         >
                             <Icon className="h-4 w-4 md:h-5 md:w-5" />
@@ -96,6 +96,11 @@ export default function AdminSidebar({ translations }: AdminSidebarProps) {
             </div>
         </>
     );
+}
+
+export default function AdminSidebar({ translations }: { readonly translations: AdminSidebarProps['translations'] }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const pathname = usePathname();
 
     return (
         <>
@@ -133,7 +138,7 @@ export default function AdminSidebar({ translations }: AdminSidebarProps) {
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                             className="md:hidden fixed top-0 left-0 h-full w-64 bg-zinc-900 z-50 flex flex-col"
                         >
-                            <SidebarContent />
+                            <SidebarContent translations={translations} pathname={pathname} setIsOpen={setIsOpen} />
                         </motion.aside>
                     </>
                 )}
@@ -141,7 +146,7 @@ export default function AdminSidebar({ translations }: AdminSidebarProps) {
 
             {/* Desktop Sidebar - Always visible */}
             <aside className="hidden md:flex w-64 bg-zinc-900 border-r border-white/5 flex-col fixed h-full z-20 ltr:left-0 rtl:right-0">
-                <SidebarContent />
+                <SidebarContent translations={translations} pathname={pathname} setIsOpen={setIsOpen} />
             </aside>
         </>
     );

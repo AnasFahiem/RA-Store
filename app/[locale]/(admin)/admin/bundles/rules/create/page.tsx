@@ -1,17 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/lib/navigation';
+import { useRouter, Link } from '@/lib/navigation';
 import { createDiscountRule } from '@/lib/actions/bundleActions';
 import { ArrowLeft, Save } from 'lucide-react';
-import { Link } from '@/lib/navigation';
 
 export default function CreateRulePage() {
     const [name, setName] = useState('');
     const [minQuantity, setMinQuantity] = useState(3);
     const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
     const [discountValue, setDiscountValue] = useState(10);
-    const [router] = [useRouter()];
+    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -72,7 +71,7 @@ export default function CreateRulePage() {
                         <label className="block text-sm font-bold text-gray-400 mb-1">Discount Type</label>
                         <select
                             value={discountType}
-                            onChange={(e) => setDiscountType(e.target.value as any)}
+                            onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
                             className="w-full bg-black border border-white/10 rounded px-4 py-2 text-white focus:border-accent outline-none"
                         >
                             <option value="percentage">Percentage (%)</option>

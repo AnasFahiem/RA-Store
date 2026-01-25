@@ -25,7 +25,7 @@ export default function GymBackground() {
             const hasCollision = newIcons.some(icon => {
                 const dx = icon.x - x;
                 const dy = icon.y - y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const distance = Math.hypot(dx, dy);
                 return distance < minDistance;
             });
 

@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Search as SearchIcon, X, Loader2, ArrowRight } from 'lucide-react';
-import { useRouter } from '@/lib/navigation';
+import { useRouter, Link } from '@/lib/navigation';
 import { searchProducts } from '@/lib/actions/products';
 import Image from 'next/image';
 import { formatCurrency } from '@/lib/utils/format';
-import { Link } from '@/lib/navigation';
 
 export default function Search() {
     const [isOpen, setIsOpen] = useState(false);
@@ -118,10 +117,18 @@ export default function Search() {
                             {results.map(product => (
                                 <div
                                     key={product.id}
-                                    className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 transition-colors group cursor-pointer"
+                                    className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 transition-colors group cursor-pointer outline-none focus:bg-white/10"
                                     onClick={() => {
                                         setIsOpen(false);
                                         router.push(`/products/${product.id}`);
+                                    }}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            setIsOpen(false);
+                                            router.push(`/products/${product.id}`);
+                                        }
                                     }}
                                 >
                                     <div className="relative w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0 border border-white/5">
@@ -133,7 +140,10 @@ export default function Search() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="text-sm font-medium text-foreground truncate group-hover:text-accent transition-colors">
-                                            {isArabic(debouncedQuery) && product.name_ar ? product.name_ar : product.name}
+                                            {(() => {
+                                                const showArabic = isArabic(debouncedQuery) && product.name_ar;
+                                                return showArabic ? product.name_ar : product.name;
+                                            })()}
                                         </h4>
                                         <div className="flex items-center gap-2 mt-0.5">
                                             <span className="text-xs text-muted-foreground">{product.category || 'Product'}</span>

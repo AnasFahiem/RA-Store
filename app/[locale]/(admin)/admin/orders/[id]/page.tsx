@@ -1,17 +1,16 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { updateOrderStatus } from '@/lib/actions/order-management';
 import Link from 'next/link';
 import { ArrowLeft, Package, Truck, CheckCircle, Clock } from 'lucide-react';
 import { redirect } from 'next/navigation';
 
-async function getOrder(orderId: string) {
-    const { data: order, error } = await supabase
+async function getOrder(id: string) {
+    const supabase = await createClient();
+    const { data: order } = await supabase
         .from('orders')
-        .select('*, users(name, email)')
-        .eq('id', orderId)
+        .select('*, users(name, email)') // Keep the join for user info
+        .eq('id', id)
         .single();
-
-    if (error || !order) return null;
     return order;
 }
 

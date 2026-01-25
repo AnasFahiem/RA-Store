@@ -1,7 +1,7 @@
 import { Link } from '@/lib/navigation';
 import Image from 'next/image';
 import ProductCard from '@/components/storefront/ProductCard';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import * as motion from "framer-motion/client";
 import { getTranslations } from 'next-intl/server';
 import { getAdminBundles } from '@/lib/actions/bundleActions';
@@ -10,6 +10,7 @@ import { getHeroSlides } from '@/lib/actions/hero';
 import HeroSlider from '@/components/storefront/HeroSlider';
 
 async function getFeaturedProducts() {
+  const supabase = await createClient();
   const { data } = await supabase
     .from('products')
     .select('*')

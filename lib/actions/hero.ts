@@ -1,9 +1,10 @@
 'use server';
 
-import { supabaseAdmin } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 export async function getHeroSlides() {
+    const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('hero_slides')
         .select('*')
@@ -20,6 +21,7 @@ export async function getHeroSlides() {
 
 export async function addHeroSlide(imageUrl: string) {
     // Get current max order to append to end
+    const supabaseAdmin = createAdminClient();
     const { data: maxOrderData } = await supabaseAdmin
         .from('hero_slides')
         .select('sort_order')
@@ -28,6 +30,11 @@ export async function addHeroSlide(imageUrl: string) {
         .single();
 
     const nextOrder = (maxOrderData?.sort_order ?? 0) + 1;
+
+    // Re-use existing admin client? Or just use variable if I scoped it?
+    // I scoped it inside addHeroSlide so it's 'supabaseAdmin' variable is available?
+    // Wait, in previous chunk I defined 'const supabaseAdmin = createAdminClient();' inside addHeroSlide.
+    // So logic flow continues.
 
     const { data, error } = await supabaseAdmin
         .from('hero_slides')
@@ -52,6 +59,7 @@ export async function addHeroSlide(imageUrl: string) {
 }
 
 export async function deleteHeroSlide(id: string) {
+    const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
         .from('hero_slides')
         .delete()
@@ -70,6 +78,8 @@ export async function deleteHeroSlide(id: string) {
 export async function updateHeroSlideOrder(items: { id: string; sort_order: number }[]) {
     // Supabase doesn't support bulk update with different values easily in one query without RPC
     // So we'll loop for now, or use a case statement if performance is critical (unlikely for < 10 slides)
+
+    const supabaseAdmin = createAdminClient();
 
     const updates = items.map(item =>
         supabaseAdmin

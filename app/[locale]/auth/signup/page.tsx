@@ -20,7 +20,7 @@ export default function SignupPage() {
     const requirements = [
         { label: t('requirements.length'), valid: password.length >= 6 },
         { label: t('requirements.uppercase'), valid: /[A-Z]/.test(password) },
-        { label: t('requirements.number'), valid: /[0-9]/.test(password) },
+        { label: t('requirements.number'), valid: /\d/.test(password) },
         { label: t('requirements.special'), valid: /[^A-Za-z0-9]/.test(password) },
     ];
 
@@ -144,7 +144,7 @@ export default function SignupPage() {
                                 {/* Password Requirements */}
                                 <div className="mt-3 space-y-1 text-xs">
                                     {requirements.map((req, index) => (
-                                        <div key={index} className={`flex items-center gap-2 ${req.valid ? 'text-green-500' : 'text-muted-foreground'}`}>
+                                        <div key={req.label} className={`flex items-center gap-2 ${req.valid ? 'text-green-500' : 'text-muted-foreground'}`}>
                                             {req.valid ? (
                                                 <Check className="h-3 w-3" />
                                             ) : (

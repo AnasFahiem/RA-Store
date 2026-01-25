@@ -1,7 +1,7 @@
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import { getSession } from "@/lib/auth/session";
-import { supabase } from "@/lib/supabase";
+import { createClient } from '@/lib/supabase/server';
 import GymBackground from "@/components/shared/GymBackground";
 import CartSidebar from "@/components/storefront/CartSidebar";
 
@@ -14,6 +14,7 @@ export default async function StorefrontLayout({
     let userName;
 
     if (session?.userId) {
+        const supabase = await createClient();
         const { data: user } = await supabase
             .from('users')
             .select('name')

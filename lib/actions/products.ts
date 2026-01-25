@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase } from '@/lib/supabase';
+import { ProductService } from '@/services/products';
 
 export async function searchProducts(query: string) {
     if (!query || query.length < 1) {
@@ -9,42 +9,19 @@ export async function searchProducts(query: string) {
 
     console.log(`[SearchAction] Starting search for: "${query}"`);
 
-    const { data, error } = await supabase
-        .from('products')
-        .select('id, name, name_ar, base_price, images, category')
-        .or(`name.ilike.%${query}%,name_ar.ilike.%${query}%`)
-        .limit(8);
-
-    console.log(`[SearchAction] DB Result: ${data?.length} items, Error: ${error?.message}`);
-
-    if (error) {
-        // Silently fail or log to server monitoring if available
-        // console.error('Search Supabase error:', error);
+    try {
+        return await ProductService.searchProducts(query);
+    } catch (error) {
+        console.error('Search error:', error);
         return [];
     }
-
-    // Map base_price to price for frontend compatibility
-    return data.map((product: any) => ({
-        ...product,
-        price: product.base_price,
-        image: Array.isArray(product.images) ? product.images[0] : product.images
-    }));
 }
 
 export async function getAllProducts() {
-    const { data, error } = await supabase
-        .from('products')
-        .select('id, name, base_price, images, category')
-        .order('name');
-
-    if (error) {
+    try {
+        return await ProductService.getProducts();
+    } catch (error) {
         console.error('getAllProducts error:', error);
         return [];
     }
-
-    return data.map((product: any) => ({
-        ...product,
-        price: product.base_price,
-        image: Array.isArray(product.images) ? product.images[0] : product.images
-    }));
 }

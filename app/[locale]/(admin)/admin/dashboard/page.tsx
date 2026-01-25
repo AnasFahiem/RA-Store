@@ -1,21 +1,26 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { Package, ShoppingCart, DollarSign, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/format';
 
 async function getStats() {
+    const supabase = await createClient();
+
+    // Fetch basic stats
     const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
     const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
     const { count: userCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
 
     // Calculate total revenue
-    const { data: orders } = await supabase.from('orders').select('total_amount');
-    const totalRevenue = orders?.reduce((sum, order) => sum + (Number(order.total_amount) || 0), 0) || 0;
+    const { data: orders } = await supabase.from('orders').select('total_amount, created_at, status');
+    const totalRevenue = orders?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
+    const { data: recentOrders } = await supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(5);
 
     return {
         orderCount: orderCount || 0,
         productCount: productCount || 0,
         userCount: userCount || 0,
-        totalRevenue
+        totalRevenue,
+        recentOrders: recentOrders || []
     };
 }
 

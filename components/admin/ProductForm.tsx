@@ -7,23 +7,25 @@ import { Link } from '@/lib/navigation';
 import MultiImageUpload from './MultiImageUpload';
 
 interface ProductFormProps {
-    initialData?: {
-        id?: string;
-        name: string;
-        name_ar?: string;
-        description: string;
-        description_ar?: string;
-        base_price: number;
-        category: string;
-        images: string[];
-        sizes?: string[];
+    readonly initialData?: {
+        readonly id?: string;
+        readonly name: string;
+        readonly name_ar?: string;
+        readonly description: string;
+        readonly description_ar?: string;
+        readonly base_price: number;
+        readonly category: string;
+        readonly images: string[];
+        readonly sizes?: string[];
     };
-    action: (state: any, payload: FormData) => Promise<any>;
-    mode: 'create' | 'edit';
+    readonly action: (state: any, payload: FormData) => Promise<any>;
+    readonly mode: 'create' | 'edit';
 }
 
-function SubmitButton({ mode }: { mode: 'create' | 'edit' }) {
+function SubmitButton({ mode }: { readonly mode: 'create' | 'edit' }) {
     const { pending } = useFormStatus();
+    const label = pending ? 'Saving...' : (mode === 'create' ? 'Save Product' : 'Update Product');
+
     return (
         <button
             type="submit"
@@ -31,7 +33,7 @@ function SubmitButton({ mode }: { mode: 'create' | 'edit' }) {
             className="flex items-center gap-2 px-6 py-3 bg-accent text-white font-bold uppercase tracking-wider rounded-md hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
             <Save className="h-5 w-5" />
-            {pending ? 'Saving...' : mode === 'create' ? 'Save Product' : 'Update Product'}
+            {label}
         </button>
     );
 }
@@ -98,8 +100,9 @@ export default function ProductForm({ initialData, action, mode }: ProductFormPr
                         <h2 className="text-xl font-bold text-white border-b border-white/10 pb-2">Basic Information</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Product Name (English)</label>
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-400 mb-2">Product Name (English)</label>
                                 <input
+                                    id="name"
                                     name="name"
                                     type="text"
                                     required
@@ -109,8 +112,9 @@ export default function ProductForm({ initialData, action, mode }: ProductFormPr
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Product Name (Arabic)</label>
+                                <label htmlFor="name_ar" className="block text-sm font-medium text-gray-400 mb-2">Product Name (Arabic)</label>
                                 <input
+                                    id="name_ar"
                                     name="name_ar"
                                     type="text"
                                     defaultValue={initialData?.name_ar}
@@ -123,8 +127,9 @@ export default function ProductForm({ initialData, action, mode }: ProductFormPr
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Description (English)</label>
+                                <label htmlFor="description" className="block text-sm font-medium text-gray-400 mb-2">Description (English)</label>
                                 <textarea
+                                    id="description"
                                     name="description"
                                     required
                                     rows={4}
@@ -134,8 +139,9 @@ export default function ProductForm({ initialData, action, mode }: ProductFormPr
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Description (Arabic)</label>
+                                <label htmlFor="description_ar" className="block text-sm font-medium text-gray-400 mb-2">Description (Arabic)</label>
                                 <textarea
+                                    id="description_ar"
                                     name="description_ar"
                                     rows={4}
                                     defaultValue={initialData?.description_ar}
@@ -152,8 +158,9 @@ export default function ProductForm({ initialData, action, mode }: ProductFormPr
                         <h2 className="text-xl font-bold text-white border-b border-white/10 pb-2">Details & Media</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Category</label>
+                                <label htmlFor="category" className="block text-sm font-medium text-gray-400 mb-2">Category</label>
                                 <select
+                                    id="category"
                                     name="category"
                                     defaultValue={initialData?.category}
                                     className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-md text-white focus:outline-none focus:border-accent transition-colors"
@@ -165,8 +172,9 @@ export default function ProductForm({ initialData, action, mode }: ProductFormPr
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Base Price (EGP)</label>
+                                <label htmlFor="base_price" className="block text-sm font-medium text-gray-400 mb-2">Base Price (EGP)</label>
                                 <input
+                                    id="base_price"
                                     name="base_price"
                                     type="number"
                                     step="0.01"
@@ -192,13 +200,19 @@ export default function ProductForm({ initialData, action, mode }: ProductFormPr
                     <div className="space-y-6">
                         <h2 className="text-xl font-bold text-white border-b border-white/10 pb-2">Sizes / Variants</h2>
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Available Sizes</label>
+                            <label htmlFor="sizes" className="block text-sm font-medium text-gray-400 mb-2">Available Sizes</label>
                             <div className="flex gap-2 mb-3">
                                 <input
+                                    id="sizes"
                                     type="text"
                                     value={newSize}
                                     onChange={(e) => setNewSize(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSize())}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleAddSize();
+                                        }
+                                    }}
                                     className="flex-1 px-4 py-2 bg-black/50 border border-white/10 rounded-md text-white focus:outline-none focus:border-accent"
                                     placeholder="Enter size (e.g. S, M, L, 42, 44)"
                                 />

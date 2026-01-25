@@ -1,10 +1,11 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { verifySession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod'; // Ensure zod is installed or use manual validation
 
-async function getUserProfile(userId: string) {
+async function getProfile(userId: string) {
+    const supabase = await createClient();
     const { data: user, error } = await supabase
         .from('users')
         .select('name, email')
@@ -20,7 +21,7 @@ export default async function ProfilePage() {
     if (!session) redirect('/auth/login');
     const t = await getTranslations('Account');
 
-    const user = await getUserProfile(session.userId);
+    const user = await getProfile(session.userId);
     if (!user) return <div>Error loading profile</div>;
 
     return (

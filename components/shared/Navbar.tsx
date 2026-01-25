@@ -11,7 +11,7 @@ import Search from './Search';
 import MobileMenu from './MobileMenu';
 import logoImg from '../../public/logo.png';
 
-export default function Navbar({ role, userName }: { role?: string; userName?: string }) {
+export default function Navbar({ role, userName }: { readonly role?: string; readonly userName?: string }) {
     const { totalItems, openCart, disconnect } = useCart();
     const locale = useLocale();
     const router = useRouter();

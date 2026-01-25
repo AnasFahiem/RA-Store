@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import bcrypt from 'bcryptjs';
 import { createSession, deleteSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
@@ -25,6 +25,8 @@ export async function login(prevState: any, formData: FormData) {
     }
 
     const { email, password } = result.data;
+
+    const supabase = await createClient();
 
     // Fetch user from Supabase
     const { data: user, error } = await supabase
@@ -57,6 +59,8 @@ export async function signup(prevState: any, formData: FormData) {
     }
 
     const { name, email, password } = result.data;
+
+    const supabase = await createClient();
 
     // Check existing user
     const { data: existingUser } = await supabase

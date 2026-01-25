@@ -1,6 +1,6 @@
 'use server';
 
-import { supabaseAdmin } from '@/lib/supabaseAdmin'; // Use Admin client for trusted server actions
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
 import { z } from 'zod';
@@ -30,6 +30,7 @@ const DiscountRuleSchema = z.object({
 // --- Actions ---
 
 export async function getDiscountRules() {
+    const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('discount_rules')
         .select('*')
@@ -44,6 +45,7 @@ export async function getDiscountRules() {
 }
 
 export async function getAdminBundles() {
+    const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('bundles')
         .select(`
@@ -72,7 +74,9 @@ export async function createBundle(formData: any) {
     }
 
     const { name, description, type, items, priceOverride } = result.data;
-    const slug = name.toLowerCase().replace(/ /g, '-') + '-' + Date.now();
+    const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
+
+    const supabaseAdmin = createAdminClient();
 
     const { data: bundle, error: bundleError } = await supabaseAdmin
         .from('bundles')
@@ -122,6 +126,7 @@ export async function deleteBundle(bundleId: string) {
     }
 
     // First delete bundle items
+    const supabaseAdmin = createAdminClient();
     await supabaseAdmin
         .from('bundle_items')
         .delete()
@@ -155,6 +160,8 @@ export async function updateBundle(bundleId: string, formData: any) {
     }
 
     const { name, description, items, priceOverride } = result.data;
+
+    const supabaseAdmin = createAdminClient();
 
     // Update bundle
     const { error: bundleError } = await supabaseAdmin
@@ -209,6 +216,8 @@ export async function createDiscountRule(formData: any) {
     const result = DiscountRuleSchema.safeParse(formData);
     if (!result.success) return { success: false, error: 'Invalid data' };
 
+    const supabaseAdmin = createAdminClient();
+
     const { error } = await supabaseAdmin
         .from('discount_rules')
         .insert({
@@ -232,6 +241,7 @@ export async function createDiscountRule(formData: any) {
 // Special function to add a whole bundle to the cart
 export async function getBundleById(id: string) {
     console.log('[getBundleById] querying ID:', id);
+    const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('bundles')
         .select(`
@@ -256,6 +266,8 @@ export async function addBundleToCart(bundleId: string) {
     const session = await getSession();
     let userId = session?.userId;
     console.log('[addBundleToCart] User:', userId);
+
+    const supabaseAdmin = createAdminClient();
 
     // Fetch bundle items
     const { data: bundleItems, error: fetchError } = await supabaseAdmin

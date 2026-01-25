@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import { Link } from '@/lib/navigation';
 import { Plus, Edit, Package } from 'lucide-react';
 import Image from 'next/image';
@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/utils/format';
 import { getTranslations } from 'next-intl/server';
 
 async function getProducts() {
+    const supabase = await createClient();
     const { data: products, error } = await supabase
         .from('products')
         .select('*')

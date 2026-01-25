@@ -1,6 +1,6 @@
 'use server';
 
-import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { verifySession } from '@/lib/auth/session';
 
 export async function uploadImage(formData: FormData) {
@@ -23,6 +23,8 @@ export async function uploadImage(formData: FormData) {
             return { error: 'No file provided' };
         }
         console.log(`Server Action: File received - Name: ${file.name}, Size: ${file.size}, Type: ${file.type}`);
+
+        const supabaseAdmin = createAdminClient();
 
         // 2. Ensure Bucket Exists (Self-Healing)
         const { data: buckets } = await supabaseAdmin.storage.listBuckets();
