@@ -10,15 +10,15 @@ import { Link } from '@/lib/navigation';
 
 type ProductProps = {
     id: string;
-    name: string;
-    name_ar?: string;
-    price: number;
-    image: string;
-    category: string;
-    variants?: { name: string; sku: string }[];
+    readonly name: string;
+    readonly name_ar?: string;
+    readonly price: number;
+    readonly image: string;
+    readonly category: string;
+    readonly variants?: { readonly name: string; readonly sku: string }[];
 };
 
-export default function ProductCard({ id, name, name_ar, price, image, category, variants }: ProductProps) {
+export default function ProductCard({ id, name, name_ar, price, image, category, variants }: { readonly id: string } & Omit<ProductProps, 'id'>) {
     const { addToCart } = useCart();
     const [selectedVariant, setSelectedVariant] = useState(variants?.[0]?.name);
     const t = useTranslations('Product');
@@ -55,7 +55,7 @@ export default function ProductCard({ id, name, name_ar, price, image, category,
                         onError={(e) => {
                             // Fallback on error
                             const target = e.target as HTMLImageElement;
-                            if (target.src !== window.location.origin + '/placeholder.jpg') {
+                            if (target.src !== globalThis.location.origin + '/placeholder.jpg') {
                                 target.src = '/placeholder.jpg';
                             }
                         }}

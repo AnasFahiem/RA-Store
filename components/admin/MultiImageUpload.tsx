@@ -74,7 +74,8 @@ export default function MultiImageUpload({ defaultImages = [], onImagesChange }:
 
     return (
         <div className="space-y-6">
-            <div
+            <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -82,8 +83,6 @@ export default function MultiImageUpload({ defaultImages = [], onImagesChange }:
                         fileInputRef.current?.click();
                     }
                 }}
-                role="button"
-                tabIndex={0}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
                 className={`
@@ -118,7 +117,7 @@ export default function MultiImageUpload({ defaultImages = [], onImagesChange }:
                         <p className="text-xs text-gray-500 mt-1">Supports JPG, PNG, WEBP</p>
                     </div>
                 )}
-            </div>
+            </button>
 
             <div className="flex gap-2">
                 <input

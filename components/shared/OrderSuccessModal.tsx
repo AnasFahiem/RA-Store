@@ -27,14 +27,11 @@ export default function OrderSuccessModal({ isOpen, onClose, orderId }: OrderSuc
     return (
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`}>
             {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
+            <button
+                type="button"
+                className="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer w-full h-full border-none p-0"
                 onClick={onClose}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                    if (e.key === 'Escape') onClose();
-                }}
+                aria-label="Close modal"
             />
 
             {/* Modal Content */}

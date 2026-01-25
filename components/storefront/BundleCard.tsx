@@ -9,21 +9,21 @@ import { useCart } from '@/lib/context/CartContext';
 import { useState } from 'react';
 
 interface BundleCardProps {
-    id: string;
-    name: string;
-    price_override?: number;
-    image?: string;
-    items: {
-        quantity: number;
-        product: {
-            name: string;
-            images: string[];
-            base_price: number;
+    readonly id: string;
+    readonly name: string;
+    readonly price_override?: number;
+    readonly image?: string;
+    readonly items: {
+        readonly quantity: number;
+        readonly product: {
+            readonly name: string;
+            readonly images: string[];
+            readonly base_price: number;
         };
     }[];
 }
 
-export default function BundleCard({ id, name, price_override, image, items }: Readonly<BundleCardProps>) {
+export default function BundleCard({ id, name, price_override, image, items }: BundleCardProps) {
     const { addToCart, addBundleToCart } = useCart();
     const [loading, setLoading] = useState(false);
 
@@ -45,7 +45,8 @@ export default function BundleCard({ id, name, price_override, image, items }: R
                 const parsed = JSON.parse(rawImages);
                 if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0];
                 else if (typeof parsed === 'string' && parsed.startsWith('http')) img = parsed;
-            } catch {
+            } catch (e) {
+                console.error('Collage image parse error', e);
                 if ((rawImages as string).startsWith('http')) img = rawImages;
             }
         }
@@ -66,7 +67,10 @@ export default function BundleCard({ id, name, price_override, image, items }: R
                         const parsed = JSON.parse(rawImages);
                         if (Array.isArray(parsed) && parsed.length > 0) imageUrl = parsed[0];
                         else if (parsed.startsWith('http')) imageUrl = parsed;
-                    } catch { if ((rawImages as string).startsWith('http')) imageUrl = rawImages; }
+                    } catch (error) {
+                        console.error('Failed to parse bundle image', error);
+                        if ((rawImages as string).startsWith('http')) imageUrl = rawImages;
+                    }
                 }
 
                 return {

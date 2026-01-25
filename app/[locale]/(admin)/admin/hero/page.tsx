@@ -64,6 +64,7 @@ export default function AdminHeroPage() {
             setSlides(slides.filter(s => s.id !== id));
             router.refresh();
         } catch (error) {
+            console.error('Failed to delete slide', error);
             alert(t('failedDelete'));
         }
     };

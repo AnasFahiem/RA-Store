@@ -8,13 +8,13 @@ import { useTranslations } from 'next-intl';
 import heroBg from '../../public/hero-bg.jpg';
 
 interface HeroSlide {
-    id: string;
-    image_url: string;
-    sort_order: number;
+    readonly id: string;
+    readonly image_url: string;
+    readonly sort_order: number;
 }
 
 interface HeroSliderProps {
-    slides: HeroSlide[];
+    readonly slides: HeroSlide[];
 }
 
 export default function HeroSlider({ slides }: HeroSliderProps) {

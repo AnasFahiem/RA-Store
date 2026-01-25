@@ -10,14 +10,13 @@ import { Loader2 } from "lucide-react";
 import OrderSuccessModal from "@/components/shared/OrderSuccessModal";
 
 export default function CheckoutPage() {
-    const { items, subtotal, clearCart, totalItems } = useCart();
+    const { items, clearCart, totalItems } = useCart();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Data State
     const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
-    const [userProfile, setUserProfile] = useState<any>(null);
 
     // User Selection State
     const [selectedAddressId, setSelectedAddressId] = useState<string | 'new'>('new');
@@ -41,7 +40,6 @@ export default function CheckoutPage() {
                 // 1. Fetch User Profile
                 const profile = await getUserProfile();
                 if (profile) {
-                    setUserProfile(profile);
                     setContactInfo({
                         name: profile.name || '',
                         email: profile.email || '',
@@ -115,13 +113,6 @@ export default function CheckoutPage() {
         }
     }
 
-    // Calculate effective total handling bundles
-    const calculatedTotal = items.reduce((acc, item) => {
-        // We will do a robust calculation by grouping first?
-        // Actually, let's reuse the logic we kept duplicating
-        return acc;
-    }, 0);
-
     // Better approach: calculate once
     const { finalTotal, effectiveSubtotal } = (() => {
         const { groupedItems, standaloneItems } = items.reduce((acc, item) => {
@@ -157,7 +148,7 @@ export default function CheckoutPage() {
         );
     }
 
-    const selectedSavedAddress = savedAddresses.find(a => a.id === selectedAddressId);
+    // selectedSavedAddress removed
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

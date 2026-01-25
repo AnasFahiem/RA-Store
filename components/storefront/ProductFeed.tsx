@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import ProductCard from './ProductCard';
 import BundleCard from './BundleCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface Product {

@@ -76,12 +76,20 @@ export default function UserList({ initialUsers, currentUserRole }: { readonly i
                                 </td>
                                 <td className="px-6 py-4">{user.email}</td>
                                 <td className="px-6 py-4">
-                                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === 'owner' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
-                                        user.role === 'admin' ? 'bg-accent/10 text-accent border border-accent/20' :
-                                            'bg-gray-500/10 text-gray-400 border border-gray-500/20'
-                                        }`}>
-                                        {user.role}
-                                    </span>
+                                    {(() => {
+                                        const roleStyles = {
+                                            owner: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+                                            admin: 'bg-accent/10 text-accent border border-accent/20',
+                                            customer: 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                                        };
+                                        const style = roleStyles[user.role as keyof typeof roleStyles] || roleStyles.customer;
+
+                                        return (
+                                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${style}`}>
+                                                {user.role}
+                                            </span>
+                                        );
+                                    })()}
                                 </td>
                                 <td className="px-6 py-4">{new Date(user.created_at).toLocaleDateString()}</td>
                                 <td className="px-6 py-4 text-right">

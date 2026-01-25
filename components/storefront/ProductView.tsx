@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { ShoppingCart, Star, Truck, ShieldCheck, Undo2, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Truck, ShieldCheck, Undo2 } from 'lucide-react';
 import { useCart } from '@/lib/context/CartContext';
 import { formatCurrency } from '@/lib/utils/format';
-import { Link } from '@/lib/navigation';
+// Link removed as unused
 import { useTranslations, useLocale } from 'next-intl';
 
 type Product = {

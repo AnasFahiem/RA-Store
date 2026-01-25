@@ -59,7 +59,7 @@ export default function CartPage() {
 
                     {/* Standalone Items */}
                     {standaloneItems.length > 0 && (
-                        <ul role="list" className="border-t border-b border-white/10 divide-y divide-white/10">
+                        <ul className="border-t border-b border-white/10 divide-y divide-white/10">
                             {standaloneItems.map((item) => (
                                 <CartItemRow
                                     key={`${item.productId}-${item.variant}`}
@@ -95,7 +95,7 @@ export default function CartPage() {
                                         )}
                                     </div>
                                 </div>
-                                <ul role="list" className="divide-y divide-white/10 px-4">
+                                <ul className="divide-y divide-white/10 px-4">
                                     {group.items.map((item: any) => (
                                         <CartItemRow
                                             key={`${item.productId}-${item.variant}`}

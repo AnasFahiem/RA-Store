@@ -32,6 +32,7 @@ export default async function ProductPage({ params }: Props) {
         try {
             parsedImages = JSON.parse(product.images);
         } catch (e) {
+            console.error('Failed to parse product images', e);
             // Fallback
             if (product.images.startsWith('http')) {
                 parsedImages = [product.images];

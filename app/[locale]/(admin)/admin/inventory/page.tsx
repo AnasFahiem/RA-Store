@@ -18,19 +18,24 @@ async function getProducts() {
         return [];
     }
 
-    // Safely parse JSON fields if they come back as strings
     const safeProducts = products.map(p => {
         let safeImages = [];
         try {
             if (Array.isArray(p.images)) safeImages = p.images;
             else if (typeof p.images === 'string') safeImages = JSON.parse(p.images);
-        } catch (e) { safeImages = []; }
+        } catch (e) {
+            console.error('Failed to parse product images', e);
+            safeImages = [];
+        }
 
         let safeSizes = [];
         try {
             if (Array.isArray(p.sizes)) safeSizes = p.sizes;
             else if (typeof p.sizes === 'string') safeSizes = JSON.parse(p.sizes);
-        } catch (e) { safeSizes = []; }
+        } catch (e) {
+            console.error('Failed to parse product sizes', e);
+            safeSizes = [];
+        }
 
         return { ...p, images: safeImages, sizes: safeSizes };
     });

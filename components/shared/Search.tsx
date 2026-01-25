@@ -115,20 +115,13 @@ export default function Search() {
                         <div className="py-2">
                             <p className="px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider">Products</p>
                             {results.map(product => (
-                                <div
+                                <button
                                     key={product.id}
-                                    className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 transition-colors group cursor-pointer outline-none focus:bg-white/10"
+                                    type="button"
+                                    className="flex items-center gap-4 px-4 py-3 hover:bg-white/5 transition-colors group cursor-pointer outline-none focus:bg-white/10 w-full text-left"
                                     onClick={() => {
                                         setIsOpen(false);
                                         router.push(`/products/${product.id}`);
-                                    }}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            setIsOpen(false);
-                                            router.push(`/products/${product.id}`);
-                                        }
                                     }}
                                 >
                                     <div className="relative w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0 border border-white/5">
@@ -151,7 +144,7 @@ export default function Search() {
                                         </div>
                                     </div>
                                     <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
-                                </div>
+                                </button>
                             ))}
                         </div>
                     ) : (
