@@ -86,7 +86,8 @@ export default function ProductView({ product }: { product: Product }) {
                             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                                 {images.map((img, idx) => (
                                     <button
-                                        key={idx}
+                                        key={img}
+                                        type="button"
                                         onClick={() => setSelectedImage(idx)}
                                         className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-accent ring-1 ring-accent' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                                             }`}

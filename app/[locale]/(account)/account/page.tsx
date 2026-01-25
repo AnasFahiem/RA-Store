@@ -70,29 +70,28 @@ export default async function AccountOverviewPage() {
 
                 {orders.length > 0 ? (
                     <div className="bg-black/40 border border-white/10 rounded-lg divide-y divide-white/5">
-                        {orders.map((order) => (
-                            <div key={order.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                                <div>
-                                    <p className="font-medium text-white">Order #{order.id.slice(0, 8)}</p>
-                                    <p className="text-sm text-gray-400">{new Date(order.created_at).toLocaleDateString()}</p>
+                        {orders.map((order) => {
+                            const statusClasses = order.status === 'Delivered'
+                                ? 'bg-green-900/30 text-green-400'
+                                : order.status === 'Shipped'
+                                    ? 'bg-blue-900/30 text-blue-400'
+                                    : 'bg-yellow-900/30 text-yellow-400';
+
+                            return (
+                                <div key={order.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                                    <div>
+                                        <p className="font-medium text-white">Order #{order.id.slice(0, 8)}</p>
+                                        <p className="text-sm text-gray-400">{new Date(order.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
+                                            {order.status}
+                                        </span>
+                                        <span className="text-white font-medium">${order.total_amount}</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    {(() => {
-                                        const statusClasses = order.status === 'Delivered'
-                                            ? 'bg-green-900/30 text-green-400'
-                                            : order.status === 'Shipped'
-                                                ? 'bg-blue-900/30 text-blue-400'
-                                                : 'bg-yellow-900/30 text-yellow-400';
-                                        return (
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
-                                                {order.status}
-                                            </span>
-                                        );
-                                    })()}
-                                    <span className="text-white font-medium">${order.total_amount}</span>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="text-center py-8 bg-black/40 border border-white/10 rounded-lg">

@@ -91,9 +91,11 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
 
                         <div className="mb-6">
                             <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-bold border w-full justify-center
-                                ${order.status === 'Delivered' ? 'bg-green-900/30 text-green-400 border-green-800' :
-                                    order.status === 'Shipped' ? 'bg-blue-900/30 text-blue-400 border-blue-800' :
-                                        'bg-yellow-900/30 text-yellow-400 border-yellow-800'}`}>
+                                ${({
+                                    'Delivered': 'bg-green-900/30 text-green-400 border-green-800',
+                                    'Shipped': 'bg-blue-900/30 text-blue-400 border-blue-800'
+                                } as Record<string, string>)[order.status] || 'bg-yellow-900/30 text-yellow-400 border-yellow-800'}
+                            `}>
                                 {order.status}
                             </div>
                         </div>

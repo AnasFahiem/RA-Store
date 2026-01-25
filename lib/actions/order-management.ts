@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { verifySession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
@@ -13,7 +13,7 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
         return { error: 'Unauthorized' };
     }
 
-    const { data: updatedOrder, error } = await (await createClient())
+    const { data: updatedOrder, error } = await createAdminClient()
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)

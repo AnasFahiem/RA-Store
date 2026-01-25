@@ -64,7 +64,8 @@ export default function BundleImageGallery({ mainImage, itemImages, bundleName }
                 <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                     {uniqueImages.map((img, idx) => (
                         <button
-                            key={idx}
+                            key={img}
+                            type="button"
                             onClick={() => setSelectedImage(img)}
                             className={cn(
                                 "relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all",

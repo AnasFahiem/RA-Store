@@ -191,7 +191,11 @@ export default function CheckoutPage() {
                         <div className="space-y-4">
                             {/* Saved Addresses Logic Placeholder - Maintaining structure */}
                             {savedAddresses.length > 0 && (
-                                <div onClick={() => setSelectedAddressId(savedAddresses[0].id)} className={`relative cursor-pointer border rounded-sm p-4 transition-all ${selectedAddressId === savedAddresses[0].id ? 'border-accent bg-accent/10' : 'border-white/10 bg-black/20 hover:border-white/20'}`}>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedAddressId(savedAddresses[0].id)}
+                                    className={`w-full text-left relative cursor-pointer border rounded-sm p-4 transition-all mb-4 ${selectedAddressId === savedAddresses[0].id ? 'border-accent bg-accent/10' : 'border-white/10 bg-black/20 hover:border-white/20'}`}
+                                >
                                     <div className="flex items-start gap-3">
                                         <div className={`mt-1 w-5 h-5 rounded-full border flex items-center justify-center ${selectedAddressId === savedAddresses[0].id ? 'border-accent bg-accent' : 'border-gray-500'}`}>
                                             {selectedAddressId === savedAddresses[0].id && <div className="w-2 h-2 bg-black rounded-full" />}
@@ -202,17 +206,21 @@ export default function CheckoutPage() {
                                             <p className="text-gray-400 text-sm">{savedAddresses[0].city}{savedAddresses[0].city ? ',' : ''} Egypt</p>
                                         </div>
                                     </div>
-                                </div>
+                                </button>
                             )}
-                            <div onClick={() => setSelectedAddressId('new')} className={`cursor-pointer border rounded-sm p-4 transition-all ${selectedAddressId === 'new' ? 'border-white/20 bg-black/20' : 'border-white/10 bg-black/20 hover:border-white/20'}`}>
-                                <div className="flex items-center gap-3">
+                            <div className={`border rounded-sm transition-all ${selectedAddressId === 'new' ? 'border-white/20 bg-black/20' : 'border-white/10 bg-black/20 hover:border-white/20'}`}>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedAddressId('new')}
+                                    className="w-full text-left p-4 flex items-center gap-3"
+                                >
                                     <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selectedAddressId === 'new' ? 'border-accent bg-accent' : 'border-gray-500'}`}>
                                         {selectedAddressId === 'new' && <div className="w-2 h-2 bg-black rounded-full" />}
                                     </div>
                                     <p className="font-medium text-white">+ New Address</p>
-                                </div>
+                                </button>
                                 {selectedAddressId === 'new' && (
-                                    <div className="mt-4 pl-8 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="px-4 pb-4 pl-8 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
                                         <div>
                                             <label htmlFor="checkout-address" className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Street Address</label>
                                             <input id="checkout-address" required={selectedAddressId === 'new'} name="address" type="text" className="w-full px-4 py-3 border border-white/10 rounded-sm bg-black/50 text-white placeholder-gray-500 focus:ring-1 focus:ring-accent focus:border-accent outline-none transition" placeholder="123 Main St" />

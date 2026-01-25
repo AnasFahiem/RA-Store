@@ -1,27 +1,34 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Package, ShoppingCart, DollarSign, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/format';
 
 async function getStats() {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
-    // Fetch basic stats
-    const { count: orderCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
-    const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
-    const { count: userCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
+    try {
+        // Fetch basic stats
+        const { count: orderCount, error: orderError } = await supabase.from('orders').select('*', { count: 'exact', head: true });
+        if (orderError) console.error('Order stats error:', orderError);
 
-    // Calculate total revenue
-    const { data: orders } = await supabase.from('orders').select('total_amount, created_at, status');
-    const totalRevenue = orders?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
-    const { data: recentOrders } = await supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(5);
+        const { count: productCount } = await supabase.from('products').select('*', { count: 'exact', head: true });
+        const { count: userCount } = await supabase.from('users').select('*', { count: 'exact', head: true });
 
-    return {
-        orderCount: orderCount || 0,
-        productCount: productCount || 0,
-        userCount: userCount || 0,
-        totalRevenue,
-        recentOrders: recentOrders || []
-    };
+        // Calculate total revenue
+        const { data: orders } = await supabase.from('orders').select('total_amount, created_at, status');
+        const totalRevenue = orders?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
+        const { data: recentOrders } = await supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(5);
+
+        return {
+            orderCount: orderCount || 0,
+            productCount: productCount || 0,
+            userCount: userCount || 0,
+            totalRevenue,
+            recentOrders: recentOrders || []
+        };
+    } catch (e) {
+        console.error('Values stats failed:', e);
+        return { orderCount: 0, productCount: 0, userCount: 0, totalRevenue: 0, recentOrders: [] };
+    }
 }
 
 import { getTranslations } from 'next-intl/server';

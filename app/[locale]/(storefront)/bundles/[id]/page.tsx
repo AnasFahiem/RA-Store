@@ -104,7 +104,7 @@ export default async function BundleDetailsPage(props: { params: Promise<{ id: s
                             </h4>
                             <div className="space-y-3">
                                 {bundle.items.map((item: any, idx: number) => (
-                                    <div key={idx} className="flex items-center gap-4 bg-muted/40 p-3 rounded-md border border-border">
+                                    <div key={item.product?.id || idx} className="flex items-center gap-4 bg-muted/40 p-3 rounded-md border border-border">
                                         <div className="relative w-14 h-14 bg-background rounded-sm overflow-hidden flex-shrink-0 border border-border/50">
                                             {/* Reuse simpler logic for image parsing since we pre-calculated collageImages */}
                                             {/* Note: itemImages matches index of items. But earlier logic didn't pass full itemImages list to this map scope easily unless recalculated or passed.

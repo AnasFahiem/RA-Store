@@ -8,32 +8,32 @@ import { SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface Product {
-    id: string;
-    name: string;
-    name_ar?: string; // Optional since it might not be relevant for sorting if purely by price
-    price: number;
-    category: string;
-    image: string;
-    variants: any[];
+    readonly id: string;
+    readonly name: string;
+    readonly name_ar?: string; // Optional since it might not be relevant for sorting if purely by price
+    readonly price: number;
+    readonly category: string;
+    readonly image: string;
+    readonly variants: any[];
 }
 
 interface Bundle {
-    id: string;
-    name: string;
-    price_override?: number;
-    image?: string;
-    items: any[];
+    readonly id: string;
+    readonly name: string;
+    readonly price_override?: number;
+    readonly image?: string;
+    readonly items: any[];
 }
 
 interface ProductFeedProps {
-    products: Product[];
-    bundles: Bundle[];
+    readonly products: Product[];
+    readonly bundles: Bundle[];
 }
 
 type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
 
-type EnrichedProduct = Product & { type: 'product' };
-type EnrichedBundle = Bundle & { type: 'bundle'; price: number; category: string };
+type EnrichedProduct = Product & { readonly type: 'product' };
+type EnrichedBundle = Bundle & { readonly type: 'bundle'; readonly price: number; readonly category: string };
 type DisplayItem = EnrichedProduct | EnrichedBundle;
 
 export default function ProductFeed({ products, bundles }: ProductFeedProps) {

@@ -58,19 +58,12 @@ export default async function OrdersPage() {
                                     Order #{order.id.slice(0, 8)}
                                 </h3>
                                 <div className="mt-2 flex gap-2">
-                                    {(() => {
-                                        const statusColor = order.status === 'Delivered'
-                                            ? 'bg-green-900/50 text-green-400 border border-green-800'
-                                            : order.status === 'Shipped'
-                                                ? 'bg-blue-900/50 text-blue-400 border border-blue-800'
-                                                : 'bg-yellow-900/50 text-yellow-400 border border-yellow-800';
-
-                                        return (
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
-                                                {order.status}
-                                            </span>
-                                        );
-                                    })()}
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${order.status === 'Delivered' ? 'bg-green-900/50 text-green-400 border border-green-800' :
+                                            order.status === 'Shipped' ? 'bg-blue-900/50 text-blue-400 border border-blue-800' :
+                                                'bg-yellow-900/50 text-yellow-400 border border-yellow-800'
+                                        }`}>
+                                        {order.status}
+                                    </span>
                                 </div>
                             </div>
 

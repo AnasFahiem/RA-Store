@@ -24,7 +24,8 @@ interface ProductFormProps {
 
 function SubmitButton({ mode }: { readonly mode: 'create' | 'edit' }) {
     const { pending } = useFormStatus();
-    const label = pending ? 'Saving...' : (mode === 'create' ? 'Save Product' : 'Update Product');
+    const actionLabel = mode === 'create' ? 'Save Product' : 'Update Product';
+    const label = pending ? 'Saving...' : actionLabel;
 
     return (
         <button
@@ -186,7 +187,7 @@ export default function ProductForm({ initialData, action, mode }: ProductFormPr
                             </div>
                         </div>
 
-                        <label className="block text-sm font-medium text-gray-400 mb-2">Product Images</label>
+                        <span className="block text-sm font-medium text-gray-400 mb-2">Product Images</span>
                         <p className="text-xs text-gray-500 mb-4">First image will be the main cover image. Upload multiple images to show detailed views.</p>
 
                         <MultiImageUpload

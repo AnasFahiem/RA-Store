@@ -26,6 +26,7 @@ export async function decrypt(session: string | undefined = '') {
         });
         return payload;
     } catch (error) {
+        // Session invalid or expired
         return null;
     }
 }

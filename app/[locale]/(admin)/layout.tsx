@@ -1,12 +1,12 @@
 import { redirect } from '@/lib/navigation';
 import { verifySession } from '@/lib/auth/session';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getTranslations } from 'next-intl/server';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 
 // Check if user is admin against RBAC policy
 async function isAdmin(userId: string) {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data: user } = await supabase
         .from('users')
         .select('role')

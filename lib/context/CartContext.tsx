@@ -14,37 +14,37 @@ import { addBundleToCart as addBundleServerAction } from '@/lib/actions/bundleAc
 import { checkAuth } from '@/lib/actions/auth';
 
 type CartItem = {
-    productId: string;
-    quantity: number;
-    variant?: string;
-    price?: number;
+    readonly productId: string;
+    readonly quantity: number;
+    readonly variant?: string;
+    readonly price?: number;
     // UI only fields
-    name?: string;
-    image?: string;
-    bundleId?: string;
-    bundleDetails?: {
-        name: string;
-        priceOverride?: number;
+    readonly name?: string;
+    readonly image?: string;
+    readonly bundleId?: string;
+    readonly bundleDetails?: {
+        readonly name: string;
+        readonly priceOverride?: number;
     };
 };
 
 type CartContextType = {
-    items: CartItem[];
-    addToCart: (item: CartItem) => Promise<void>;
-    removeFromCart: (productId: string, variant?: string) => Promise<void>;
-    updateQuantity: (productId: string, variant: string | undefined, delta: number) => Promise<void>;
-    clearCart: () => void;
-    disconnect: () => void;
-    totalItems: number;
-    subtotal: number;
-    isCartOpen: boolean;
-    openCart: () => void;
-    closeCart: () => void;
-    isLoading: boolean;
-    user: any;
-    refreshCart: () => Promise<void>;
-    addBundleToCart: (bundleId: string, bundleItems: CartItem[]) => Promise<void>;
-    removeBundle: (bundleId: string) => Promise<void>;
+    readonly items: CartItem[];
+    readonly addToCart: (item: CartItem) => Promise<void>;
+    readonly removeFromCart: (productId: string, variant?: string) => Promise<void>;
+    readonly updateQuantity: (productId: string, variant: string | undefined, delta: number) => Promise<void>;
+    readonly clearCart: () => void;
+    readonly disconnect: () => void;
+    readonly totalItems: number;
+    readonly subtotal: number;
+    readonly isCartOpen: boolean;
+    readonly openCart: () => void;
+    readonly closeCart: () => void;
+    readonly isLoading: boolean;
+    readonly user: any;
+    readonly refreshCart: () => Promise<void>;
+    readonly addBundleToCart: (bundleId: string, bundleItems: CartItem[]) => Promise<void>;
+    readonly removeBundle: (bundleId: string) => Promise<void>;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -54,10 +54,8 @@ export function CartProvider({ children, initialItems = [] }: {
     children: React.ReactNode;
     initialItems?: CartItem[];
 }) {
-    const supabase = useMemo(() => createClient(), []);
-
     const [user, setUser] = useState<any>(null);
-    const [authInitialized, setAuthInitialized] = useState(false);
+    // authInitialized removed
     const [items, setItems] = useState<CartItem[]>(initialItems); // Use server-provided initial data
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false); // Start as not loading since we have initial data
@@ -136,38 +134,40 @@ export function CartProvider({ children, initialItems = [] }: {
         }
     };
 
+    // Helper for optimistic updates
+    const mergeCartItems = (prevItems: CartItem[], newItems: CartItem[]): CartItem[] => {
+        const nextItems = [...prevItems];
+        newItems.forEach(newItem => {
+            const existingIdx = nextItems.findIndex(i =>
+                i.productId === newItem.productId &&
+                i.variant === newItem.variant &&
+                i.bundleId === newItem.bundleId
+            );
+            if (existingIdx > -1) {
+                // Update quantity safely
+                nextItems[existingIdx] = {
+                    ...nextItems[existingIdx],
+                    quantity: nextItems[existingIdx].quantity + newItem.quantity
+                };
+            } else {
+                nextItems.push(newItem);
+            }
+        });
+        return nextItems;
+    };
+
     const addBundleToCart = async (bundleId: string, bundleItems: CartItem[]) => {
-        // 1. Optimistic Update (Atomic)
         setItems(prev => {
-            const nextItems = [...prev];
-            bundleItems.forEach(newItem => {
-                const existingIdx = nextItems.findIndex(i =>
-                    i.productId === newItem.productId &&
-                    i.variant === newItem.variant &&
-                    i.bundleId === newItem.bundleId
-                );
-                if (existingIdx > -1) {
-                    nextItems[existingIdx].quantity += newItem.quantity;
-                } else {
-                    nextItems.push(newItem);
-                }
-            });
+            const nextItems = mergeCartItems(prev, bundleItems);
             if (!user) saveToLocal(nextItems);
             return nextItems;
         });
 
         setIsCartOpen(true);
 
-        // 2. Server Sync
         if (user) {
             try {
-                // Use the server action to add the bundle atomically
-                // Note: We need to import this. Dynamic import or move import to top.
-                // Moving import to top is better. For now assuming dynamic or global.
-                // Actually, let's use the one we added to imports if possible, or use `addToCartAction` in loop?
-                // `addToCartAction` loop is slow.
-                // `addBundleServerAction` is better.
-
+                // Server Sync
                 const result = await addBundleServerAction(bundleId);
                 await refreshCart();
             } catch (e) {
@@ -177,37 +177,23 @@ export function CartProvider({ children, initialItems = [] }: {
     };
 
     const addToCart = async (newItem: CartItem) => {
-        // Optimistic Update
         setItems(prev => {
-            const nextItems = [...prev];
-            const existingIdx = nextItems.findIndex(i =>
-                i.productId === newItem.productId &&
-                i.variant === newItem.variant &&
-                i.bundleId === newItem.bundleId
-            );
-
-            if (existingIdx > -1) {
-                nextItems[existingIdx].quantity += newItem.quantity;
-            } else {
-                nextItems.push(newItem);
-            }
-            // Side effect: Persist
+            const nextItems = mergeCartItems(prev, [newItem]);
             if (!user) saveToLocal(nextItems);
             return nextItems;
         });
+
         setIsCartOpen(true);
 
         if (user) {
-            console.log('[CartContext] Authenticated. Action -> DB');
-            const result = await addToCartAction({ ...newItem, bundleId: newItem.bundleId });
-            if (result?.error) {
-                console.error('[CartContext] Save Failed:', result.error);
-                // Rollback not easily possible with functional update unless we track history, 
-                // but we can just strict refresh from server on error.
+            try {
+                const result = await addToCartAction(newItem);
+                if (result?.error) {
+                    console.error('[CartContext] Save Failed:', result.error);
+                }
                 await refreshCart();
-            } else {
-                // If successful, we might want to refresh true state from server
-                await refreshCart();
+            } catch (e) {
+                console.error('[CartContext] Add failed', e);
             }
         }
     };
