@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { createAdminClient } from '@/lib/supabase/admin';
 import GymBackground from "@/components/shared/GymBackground";
 import CartSidebar from "@/components/storefront/CartSidebar";
+import { getHeaderSlides, getHeaderSettings } from "@/lib/actions/header";
 
 export default async function StorefrontLayout({
     children,
@@ -23,11 +24,23 @@ export default async function StorefrontLayout({
         userName = user?.name;
     }
 
+    const [headerSlides, headerSettings] = await Promise.all([
+        getHeaderSlides(),
+        getHeaderSettings()
+    ]);
+
     return (
         <div className="min-h-screen flex flex-col relative">
             <GymBackground />
             {/* Navbar needs CartSidebar sibling or logic? Navbar uses context. CartSidebar uses context. They are independent. */}
-            <Navbar role={session?.role} userName={userName} />
+            <Navbar
+                role={session?.role}
+                userName={userName}
+                headerData={{
+                    slides: headerSlides,
+                    settings: headerSettings
+                }}
+            />
             <CartSidebar />
             <main className="flex-grow z-10">{children}</main>
             <Footer />

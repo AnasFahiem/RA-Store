@@ -11,7 +11,19 @@ import Search from './Search';
 import MobileMenu from './MobileMenu';
 import logoImg from '../../public/logo.png';
 
-export default function Navbar({ role, userName }: { readonly role?: string; readonly userName?: string }) {
+import HeaderSlider from './HeaderSlider';
+import type { HeaderSlide, HeaderSettings } from '@/lib/actions/header';
+
+interface NavbarProps {
+    readonly role?: string;
+    readonly userName?: string;
+    readonly headerData?: {
+        slides: HeaderSlide[];
+        settings: HeaderSettings | null;
+    };
+}
+
+export default function Navbar({ role, userName, headerData }: NavbarProps) {
     const { totalItems, openCart, disconnect } = useCart();
     const locale = useLocale();
     const router = useRouter();
@@ -35,7 +47,9 @@ export default function Navbar({ role, userName }: { readonly role?: string; rea
     };
 
     return (
+
         <nav className="sticky top-0 z-50 bg-zinc-950/95 backdrop-blur-md border-b border-white/10 transition-colors duration-300">
+            {headerData && <HeaderSlider slides={headerData.slides} settings={headerData.settings} />}
             <div className="w-full mx-auto px-4 sm:px-6 lg:px-12">
                 <div className="flex justify-between h-16 items-center">
                     {/* Logo */}
