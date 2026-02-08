@@ -6,8 +6,9 @@ import { placeOrder, getSavedAddresses, getUserProfile } from "@/lib/actions/ord
 import { useState, useEffect } from "react";
 import { useRouter } from "@/lib/navigation";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import { Loader2, Ticket } from "lucide-react";
 import OrderSuccessModal from "@/components/shared/OrderSuccessModal";
+import { validatePromoCode } from "@/lib/actions/bundleActions";
 
 export default function CheckoutPage() {
     const { items, clearCart, totalItems } = useCart();
@@ -32,6 +33,46 @@ export default function CheckoutPage() {
     // Modal State
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [createdOrderId, setCreatedOrderId] = useState<string>('');
+
+    // Promo Code State
+    const [promoCode, setPromoCode] = useState('');
+    const [appliedPromo, setAppliedPromo] = useState<any>(null);
+    const [isCheckingPromo, setIsCheckingPromo] = useState(false);
+    const [promoError, setPromoError] = useState<string | null>(null);
+    const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
+
+    const handleApplyPromo = async () => {
+        if (!promoCode.trim()) return;
+
+        setIsCheckingPromo(true);
+        setPromoError(null);
+        setPromoSuccess(null);
+
+        try {
+            const result = await validatePromoCode(promoCode.trim());
+            console.log('Promo Result:', result); // Debug
+
+            if (result.valid && result.promo) {
+                setAppliedPromo(result.promo);
+                setPromoSuccess('Promo code applied successfully!');
+            } else {
+                setPromoError(result.error || 'Invalid code');
+                setAppliedPromo(null);
+            }
+        } catch (err) {
+            console.error('Promo error:', err);
+            setPromoError('Failed to validate code');
+        } finally {
+            setIsCheckingPromo(false);
+        }
+    };
+
+    const handleRemovePromo = () => {
+        setAppliedPromo(null);
+        setPromoCode('');
+        setPromoError(null);
+        setPromoSuccess(null);
+    };
 
     // Fetch Data on Mount
     useEffect(() => {
@@ -78,7 +119,8 @@ export default function CheckoutPage() {
             email: formData.get('email'),
             phone: formData.get('phone'),
             items: items,
-            saveAddress: shouldSaveAddress // Only relevant for new address
+            saveAddress: shouldSaveAddress, // Only relevant for new address
+            promoCode: appliedPromo ? appliedPromo.code : null
         };
 
         if (selectedAddressId === 'new') {
@@ -114,7 +156,8 @@ export default function CheckoutPage() {
     }
 
     // Better approach: calculate once
-    const { finalTotal, effectiveSubtotal } = (() => {
+    // Better approach: calculate once
+    const { finalTotal, effectiveSubtotal, discountAmount } = (() => {
         const { groupedItems, standaloneItems } = items.reduce((acc, item) => {
             if (item.bundleId) {
                 if (!acc.groupedItems[item.bundleId]) {
@@ -133,7 +176,26 @@ export default function CheckoutPage() {
         }, 0);
 
         const total = standAloneTotal + bundlesTotal;
-        return { finalTotal: total, effectiveSubtotal: total };
+
+        // Calculate Discount
+        let discount = 0;
+        if (appliedPromo) {
+            if (appliedPromo.type === 'percentage') {
+                discount = (total * appliedPromo.value) / 100;
+            } else {
+                discount = appliedPromo.value;
+            }
+            // Cap discount at total
+            discount = Math.min(discount, total);
+        }
+
+        const effectiveTotal = total - discount;
+
+        return {
+            finalTotal: effectiveTotal,
+            effectiveSubtotal: total,
+            discountAmount: discount
+        };
     })();
 
     if (items.length === 0 && !showSuccessModal) {
@@ -339,6 +401,62 @@ export default function CheckoutPage() {
                                 <span className="text-gray-400">Shipping</span>
                                 <span className="font-bold text-accent">Free</span>
                             </div>
+
+                            {/* Promo Code Input */}
+                            <div className="pt-2 pb-2">
+                                {!appliedPromo ? (
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="text"
+                                                placeholder="Promo Code"
+                                                value={promoCode}
+                                                onChange={(e) => setPromoCode(e.target.value)}
+                                                className="w-full pl-9 pr-4 py-2 bg-black/40 border border-white/10 rounded-md text-sm text-white focus:outline-none focus:border-accent/50 uppercase placeholder:normal-case"
+                                                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleApplyPromo())}
+                                            />
+                                            <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleApplyPromo}
+                                            disabled={isCheckingPromo || !promoCode.trim()}
+                                            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-sm font-bold text-white transition-colors disabled:opacity-50"
+                                        >
+                                            {isCheckingPromo ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between bg-green-900/10 border border-green-900/30 p-2 rounded-md">
+                                        <div className="flex items-center gap-2">
+                                            <Ticket className="w-4 h-4 text-green-400" />
+                                            <div>
+                                                <p className="text-xs font-bold text-green-400">{appliedPromo.code}</p>
+                                                <p className="text-[10px] text-green-400/70">
+                                                    {appliedPromo.type === 'percentage' ? `${appliedPromo.value}% OFF` : `-${formatCurrency(appliedPromo.value)}`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleRemovePromo}
+                                            className="text-gray-500 hover:text-white text-xs underline"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                )}
+                                {promoError && <p className="text-xs text-red-400 mt-1">{promoError}</p>}
+                                {promoSuccess && <p className="text-xs text-green-400 mt-1">{promoSuccess}</p>}
+                            </div>
+
+                            {appliedPromo && (
+                                <div className="flex justify-between text-green-400">
+                                    <span>Discount</span>
+                                    <span>-{formatCurrency(finalTotal < effectiveSubtotal ? effectiveSubtotal - finalTotal : 0)}</span>
+                                </div>
+                            )}
+
                             <div className="border-t border-white/10 pt-3 mt-3 flex justify-between text-xl font-bold text-white">
                                 <span>Total</span>
                                 <span>{formatCurrency(finalTotal)}</span>

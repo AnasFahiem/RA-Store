@@ -103,7 +103,28 @@
             "name": "الاسم"
         },
         "noProducts": "لا توجد منتجات. أضف أول منتج لك.",
-        "noOrders": "لم يتم استلام طلبات بعد."
+        "noOrders": "لم يتم استلام طلبات بعد.",
+        "editRule": "تعديل القاعدة",
+        "deleteRule": "حذف القاعدة",
+        "confirmDeleteRule": "هل أنت متأكد من حذف هذه القاعدة؟",
+        "promoCodes": "أكواد الخصم",
+        "createPromoCode": "إنشاء كود خصم",
+        "editPromoCode": "تعديل كود الخصم",
+        "deletePromoCode": "حذف كود الخصم",
+        "confirmDeletePromo": "هل أنت متأكد من حذف هذا الكود؟",
+        "promoCode": "الكود",
+        "description": "الوصف",
+        "discountType": "النوع",
+        "discountValue": "القيمة",
+        "maxUses": "حد الاستخدام",
+        "usedCount": "مستخدم",
+        "expiresAt": "ينتهي في",
+        "isActive": "نشط",
+        "noPromoCodes": "لا توجد أكواد خصم بعد.",
+        "percentage": "نسبة مئوية",
+        "fixed": "مبلغ ثابت",
+        "save": "حفظ",
+        "saving": "جاري الحفظ..."
     },
     "Account": {
         "overview": "نظرة عامة",
@@ -187,7 +208,10 @@
             "uppercase": "حرف كبير واحد على الأقل",
             "number": "رقم واحد على الأقل",
             "special": "حرف خاص واحد على الأقل"
-        }
+        },
+        "checkEmailTitle": "تفقد بريدك الإلكتروني",
+        "checkEmailDesc": "لقد أرسلنا رابط تحقق إلى بريدك الإلكتروني. يرجى النقر على الرابط لتأكيد حسابك.",
+        "backToLogin": "العودة لتسجيل الدخول"
     },
     "Products": {
         "title": "جميع المنتجات",

@@ -189,6 +189,31 @@ export default function SignupPage() {
                     </div>
                 </motion.div>
             </div>
+
+            {/* Success Modal */}
+            {state?.success && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-card w-full max-w-sm rounded-2xl border border-border shadow-2xl p-6 text-center"
+                    >
+                        <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4 ring-1 ring-green-500/20">
+                            <Mail className="w-8 h-8 text-green-500" />
+                        </div>
+                        <h3 className="text-xl font-bold text-foreground mb-2">{t('checkEmailTitle')}</h3>
+                        <p className="text-muted-foreground text-sm mb-6">
+                            {t('checkEmailDesc')}
+                        </p>
+                        <Link
+                            href="/auth/login"
+                            className="block w-full py-2.5 bg-accent text-black font-bold rounded-lg hover:bg-yellow-500 transition-colors"
+                        >
+                            {t('backToLogin')}
+                        </Link>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }

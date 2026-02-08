@@ -25,28 +25,50 @@ export async function login(prevState: any, formData: FormData) {
     }
 
     const { email, password } = result.data;
+    const supabase = await import('@/lib/supabase/server').then(m => m.createClient());
 
-    const supabase = createAdminClient();
+    // 1. Try Supabase Auth Login
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+    });
 
-    // Fetch user from Supabase
-    const { data: user, error } = await supabase
-        .from('users')
-        .select('id, email, password_hash, role')
-        .eq('email', email)
-        .single();
+    if (authError) {
+        console.warn('Supabase Auth Login Failed:', authError.message);
 
-    if (error || !user) {
-        console.error('Login Error:', error);
-        return { error: 'Invalid credentials' };
+        // 2. Fallback: Try Legacy Login (Bcrypt check against public.users)
+        // This is necessary for existing users who haven't migrated to Supabase Auth yet.
+        const adminSupabase = createAdminClient();
+        const { data: legacyUser, error: legacyError } = await adminSupabase
+            .from('users')
+            .select('id, password_hash, role')
+            .eq('email', email)
+            .single();
+
+        if (legacyError || !legacyUser || !legacyUser.password_hash) {
+            return { error: 'Invalid credentials' };
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, legacyUser.password_hash);
+        if (!isPasswordValid) {
+            return { error: 'Invalid credentials' };
+        }
+
+        // Legacy login successful -> Create session
+        await createSession(legacyUser.id, legacyUser.role);
+    } else {
+        // Supabase Auth Login Successful
+        // Sync session state to our custom cookie for app compatibility
+        // We need to fetch the user role from public.users table because auth.users metadata might not be enough
+        // or we want consistency.
+        const { data: profile } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', authData.user.id)
+            .single();
+
+        await createSession(authData.user.id, profile?.role || 'customer');
     }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-
-    if (!isPasswordValid) {
-        return { error: 'Invalid credentials' };
-    }
-
-    await createSession(user.id, user.role);
 
     redirect('/');
 }
@@ -59,41 +81,35 @@ export async function signup(prevState: any, formData: FormData) {
     }
 
     const { name, email, password } = result.data;
+    const supabase = await import('@/lib/supabase/server').then(m => m.createClient());
 
-    const supabase = createAdminClient();
+    // Check if user already exists in public.users to give better error
+    // Although Supabase Auth will also check, explicit check is good for UX
+    // Using admin client to bypass RLS for check if needed, but server client is fine for public read usually
+    // Actually, let's rely on Supabase Auth error handling for email duplication.
 
-    // Check existing user
-    const { data: existingUser } = await supabase
-        .from('users')
-        .select('email')
-        .eq('email', email)
-        .single();
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+            data: {
+                name: name, // This will be used by the trigger to populate public.users
+            },
+            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+        },
+    });
 
-    if (existingUser) {
+    if (error) {
+        console.error('Signup Error:', error);
+        return { error: error.message };
+    }
+
+    if (data?.user && data?.user?.identities && data?.user?.identities.length === 0) {
         return { error: 'User already exists' };
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Insert new user
-    const { data: user, error } = await supabase
-        .from('users')
-        .insert({
-            name,
-            email,
-            password_hash: passwordHash,
-            role: 'customer'
-        })
-        .select()
-        .single();
-
-    if (error || !user) {
-        console.error('Signup Error:', error);
-        return { error: 'Failed to create user' };
-    }
-
-    await createSession(user.id, 'customer');
-    redirect('/');
+    // Return success state for the frontend to show the popup
+    return { success: true };
 }
 
 export async function logout() {

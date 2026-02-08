@@ -199,15 +199,7 @@ function CartItemsList({ items, removeFromCart, updateQuantity, removeBundle }: 
                                             <p className="text-[10px] text-muted-foreground">Qty: {item.quantity} {item.variant && `(${item.variant})`}</p>
                                         </div>
                                         <div className="flex items-center justify-end">
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => removeFromCart(item.productId, item.variant)}
-                                                    className="text-gray-600 hover:text-red-500 transition-colors p-1"
-                                                    title="Remove Item"
-                                                >
-                                                    <Trash2 className="w-3 h-3" />
-                                                </button>
-                                            </div>
+                                            {/* Individual item deletion removed for bundle items */}
                                         </div>
                                     </div>
                                 </div>

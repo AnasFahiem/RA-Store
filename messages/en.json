@@ -103,7 +103,28 @@
             "name": "Name"
         },
         "noProducts": "No products found. Add your first item.",
-        "noOrders": "No orders received yet."
+        "noOrders": "No orders received yet.",
+        "editRule": "Edit Rule",
+        "deleteRule": "Delete Rule",
+        "confirmDeleteRule": "Are you sure you want to delete this discount rule?",
+        "promoCodes": "Promo Codes",
+        "createPromoCode": "Create Promo Code",
+        "editPromoCode": "Edit Promo Code",
+        "deletePromoCode": "Delete Promo Code",
+        "confirmDeletePromo": "Are you sure you want to delete this promo code?",
+        "promoCode": "Promo Code",
+        "description": "Description",
+        "discountType": "Type",
+        "discountValue": "Value",
+        "maxUses": "Max Uses",
+        "usedCount": "Used",
+        "expiresAt": "Expires At",
+        "isActive": "Active",
+        "noPromoCodes": "No promo codes created yet.",
+        "percentage": "Percentage",
+        "fixed": "Fixed Amount",
+        "save": "Save",
+        "saving": "Saving..."
     },
     "Account": {
         "overview": "Overview",
@@ -187,7 +208,10 @@
             "uppercase": "At least one uppercase letter",
             "number": "At least one number",
             "special": "At least one special character"
-        }
+        },
+        "checkEmailTitle": "Check your email",
+        "checkEmailDesc": "We've sent a verification link to your email address. Please click the link to confirm your account.",
+        "backToLogin": "Back to Login"
     },
     "Products": {
         "title": "All Gear",

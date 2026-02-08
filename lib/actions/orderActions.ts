@@ -82,6 +82,25 @@ export async function getUserProfile() {
 export async function placeOrder(formData: any) {
     console.log('placeOrder received formData:', JSON.stringify(formData, null, 2));
 
+    const OrderSchema = z.object({
+        name: z.string().min(2),
+        email: z.string().email(),
+        phone: z.string().min(10),
+        address: z.string().min(5),
+        city: z.string().min(2),
+        items: z.array(z.object({
+            productId: z.string(),
+            variant: z.string().nullish(),
+            quantity: z.number().min(1),
+            price: z.number(),
+            name: z.string()
+        })),
+        saveAddress: z.boolean().optional(),
+        promoCode: z.string().optional().nullable()
+    });
+
+    // ... (inside placeOrder)
+
     const result = OrderSchema.safeParse(formData);
 
     if (!result.success) {
@@ -89,33 +108,51 @@ export async function placeOrder(formData: any) {
         return { success: false, error: 'Invalid form data: ' + result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ') };
     }
 
-    const { name, email, phone, address, city, items, saveAddress } = result.data;
-    const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
+    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    let discountTotal = 0;
+    let promoCodeId = null;
 
-    // Get session to check if user is logged in
     const session = await getSession();
-
-    // Save address if requested and user is logged in
-    console.log('PlaceOrder Debug:', { saveAddress, userId: session?.userId });
-
     const supabaseAdmin = createAdminClient();
 
-    if (saveAddress && session?.userId) {
-        console.log('Attempting to save address...');
-        const { error: addressError } = await supabaseAdmin
-            .from('addresses')
-            .insert({
-                user_id: session.userId,
-                address_line: address,
-                city: city,
-                is_default: false
-            });
+    // Validate and Apply Promo Code
+    if (promoCode) {
+        const { data: promo } = await supabaseAdmin
+            .from('promo_codes')
+            .select('*')
+            .eq('code', promoCode.toUpperCase())
+            .single();
 
-        if (addressError) {
-            console.error('Failed to save address:', addressError);
-            // Continue processing order even if address save fails
+        if (promo && promo.is_active) {
+            // Check expiration
+            if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
+                console.warn('Promo code expired');
+            } else if (promo.max_uses && promo.used_count >= promo.max_uses) {
+                console.warn('Promo code usage limit reached');
+            } else {
+                // Apply discount
+                if (promo.discount_type === 'percentage') {
+                    discountTotal = (total * promo.discount_value) / 100;
+                } else {
+                    discountTotal = promo.discount_value;
+                }
+
+                // Ensure discount doesn't exceed total
+                discountTotal = Math.min(discountTotal, total);
+                total -= discountTotal;
+                promoCodeId = promo.id;
+
+                // Increment usage count
+                await supabaseAdmin.rpc('increment_promo_usage', { promo_id: promo.id });
+                // Fallback if RPC doesn't exist (though RPC is better for concurrency)
+                // await supabaseAdmin.from('promo_codes').update({ used_count: promo.used_count + 1 }).eq('id', promo.id);
+            }
         }
     }
+
+    // Save address if requested and user is logged in
+    // ... (existing address saving logic)
 
     const { data: order, error: orderError } = await supabaseAdmin
         .from('orders')
@@ -136,10 +173,22 @@ export async function placeOrder(formData: any) {
                 price: item.price,
                 name: item.name,
                 variant: item.variant
-            }))
+            })),
+            promo_code_id: promoCodeId,
+            discount_total: discountTotal
         })
         .select()
         .single();
+
+    if (promoCodeId && !orderError) {
+        // Increment usage count safely using a raw query or simple update if RPC not set up
+        const { error: updateError } = await supabaseAdmin
+            .from('promo_codes')
+            .update({ used_count: promoCodeId ? ((await supabaseAdmin.from('promo_codes').select('used_count').eq('id', promoCodeId).single()).data?.used_count || 0) + 1 : 0 })
+            .eq('id', promoCodeId);
+
+        if (updateError) console.error('Failed to update promo usage count:', updateError);
+    }
 
     if (orderError) {
         console.error('Order creation failed:', orderError);

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
 import { z } from 'zod';
+import { unstable_noStore as noStore } from 'next/cache';
 
 // --- Schemas ---
 const BundleSchema = z.object({
@@ -27,6 +28,16 @@ const DiscountRuleSchema = z.object({
     isActive: z.boolean().default(true)
 });
 
+const PromoCodeSchema = z.object({
+    code: z.string().min(3).max(20).transform(val => val.toUpperCase()),
+    description: z.string().optional(),
+    discountType: z.enum(['percentage', 'fixed']),
+    discountValue: z.number().min(0),
+    maxUses: z.number().min(0).optional().nullable(),
+    expiresAt: z.string().optional().nullable(),
+    isActive: z.boolean().default(true)
+});
+
 // --- Actions ---
 
 export async function getDiscountRules() {
@@ -42,6 +53,22 @@ export async function getDiscountRules() {
         return [];
     }
     return data || [];
+}
+
+export async function getDiscountRuleById(id: string) {
+    noStore();
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
+        .from('discount_rules')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error) {
+        console.error('getDiscountRuleById error:', error);
+        return null;
+    }
+    return data;
 }
 
 export async function getAdminBundles() {
@@ -347,4 +374,213 @@ export async function addBundleToCart(bundleId: string) {
     revalidatePath('/cart');
     revalidatePath('/');
     return { success: true };
+}
+
+// --- Discount Rules Actions ---
+
+export async function updateDiscountRule(id: string, formData: any) {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    const result = DiscountRuleSchema.safeParse(formData);
+    if (!result.success) return { success: false, error: 'Invalid data' };
+
+    const supabaseAdmin = createAdminClient();
+
+    const { error } = await supabaseAdmin
+        .from('discount_rules')
+        .update({
+            name: result.data.name,
+            min_quantity: result.data.minQuantity,
+            discount_type: result.data.discountType,
+            discount_value: result.data.discountValue,
+            required_category: result.data.requiredCategory,
+            is_active: result.data.isActive
+        })
+        .eq('id', id);
+
+    if (error) {
+        console.error('updateDiscountRule error:', error);
+        return { success: false, error: 'Failed to update rule' };
+    }
+
+    revalidatePath('/admin/bundles');
+    return { success: true };
+}
+
+export async function deleteDiscountRule(id: string) {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin
+        .from('discount_rules')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('deleteDiscountRule error:', error);
+        return { success: false, error: 'Failed to delete rule' };
+    }
+
+    revalidatePath('/admin/bundles');
+    return { success: true };
+}
+
+// --- Promo Code Actions ---
+
+export async function getPromoCodes() {
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
+        .from('promo_codes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('getPromoCodes error:', error);
+        return [];
+    }
+    return data || [];
+}
+
+export async function getPromoCodeById(id: string) {
+    noStore();
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin
+        .from('promo_codes')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error) {
+        console.error('getPromoCodeById error:', error);
+        return null;
+    }
+    return data;
+}
+
+export async function createPromoCode(formData: any) {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    const result = PromoCodeSchema.safeParse(formData);
+    if (!result.success) return { success: false, error: 'Invalid data' };
+
+    const supabaseAdmin = createAdminClient();
+
+    const { error } = await supabaseAdmin
+        .from('promo_codes')
+        .insert({
+            code: result.data.code,
+            description: result.data.description,
+            discount_type: result.data.discountType,
+            discount_value: result.data.discountValue,
+            max_uses: result.data.maxUses,
+            expires_at: result.data.expiresAt, // Expecting ISO string or null
+            is_active: result.data.isActive
+        });
+
+    if (error) {
+        console.error('createPromoCode error:', error);
+        return { success: false, error: 'Failed to create promo code: ' + error.message };
+    }
+
+    revalidatePath('/admin/bundles');
+    return { success: true };
+}
+
+export async function updatePromoCode(id: string, formData: any) {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    const result = PromoCodeSchema.safeParse(formData);
+    if (!result.success) return { success: false, error: 'Invalid data' };
+
+    const supabaseAdmin = createAdminClient();
+
+    const { error } = await supabaseAdmin
+        .from('promo_codes')
+        .update({
+            code: result.data.code,
+            description: result.data.description,
+            discount_type: result.data.discountType,
+            discount_value: result.data.discountValue,
+            max_uses: result.data.maxUses,
+            expires_at: result.data.expiresAt,
+            is_active: result.data.isActive
+        })
+        .eq('id', id);
+
+    if (error) {
+        console.error('updatePromoCode error:', error);
+        return { success: false, error: 'Failed to update promo code' };
+    }
+
+    revalidatePath('/admin/bundles');
+    return { success: true };
+}
+
+export async function deletePromoCode(id: string) {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin
+        .from('promo_codes')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        console.error('deletePromoCode error:', error);
+        return { success: false, error: 'Failed to delete promo code' };
+    }
+
+    revalidatePath('/admin/bundles');
+    return { success: true };
+}
+
+export async function validatePromoCode(code: string) {
+    const supabaseAdmin = createAdminClient();
+
+    // checks: exists, active, not expired, max uses not reached
+    const { data: promo, error } = await supabaseAdmin
+        .from('promo_codes')
+        .select('*')
+        .eq('code', code.toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+    if (error || !promo) {
+        return { valid: false, error: 'Invalid code' };
+    }
+
+    // Check expiration
+    if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
+        return { valid: false, error: 'Code expired' };
+    }
+
+    // Check usage limit
+    if (promo.max_uses !== null && promo.used_count >= promo.max_uses) {
+        return { valid: false, error: 'Code usage limit reached' };
+    }
+
+    return {
+        valid: true,
+        promo: {
+            code: promo.code,
+            type: promo.discount_type,
+            value: promo.discount_value,
+            id: promo.id
+        }
+    };
 }

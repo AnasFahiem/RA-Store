@@ -46,6 +46,14 @@ export async function deleteUser(userId: string) {
 
     const supabase = createAdminClient();
 
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+    if (authError) {
+        console.error('Error deleting user from Supabase Auth:', authError);
+        // We continue to delete from public.users even if auth deletion fails (or if user wasn't in list), 
+        // but typically you want both. For now, we log and proceed.
+    }
+
     const { error } = await supabase
         .from('users')
         .delete()

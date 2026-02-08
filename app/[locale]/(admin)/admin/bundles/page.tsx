@@ -1,19 +1,23 @@
-import { getDiscountRules, getAdminBundles } from '@/lib/actions/bundleActions';
+import { getDiscountRules, getAdminBundles, getPromoCodes } from '@/lib/actions/bundleActions';
 import { formatCurrency } from '@/lib/utils/format';
 import { Plus, Tag, Layers, Edit } from 'lucide-react';
 import { Link } from '@/lib/navigation';
 import { getTranslations } from 'next-intl/server';
 import { DeleteBundleButton } from './delete-button';
+import { DeleteRuleButton } from './delete-rule-button';
+import { DeletePromoButton } from './delete-promo-button';
 
 export default async function BundlesPage() {
     // These will fail if DB tables don't exist, so we handle gracefully or show error if empty
     let discountRules = [];
     let bundles = [];
+    let promoCodes = [];
     const t = await getTranslations('Admin');
 
     try {
         discountRules = await getDiscountRules();
         bundles = await getAdminBundles();
+        promoCodes = await getPromoCodes();
     } catch (e) {
         console.error('Failed to load bundles data:', e);
     }
@@ -51,6 +55,76 @@ export default async function BundlesPage() {
                                 </p>
                                 <div className="mt-2 text-xs text-gray-500">
                                     {t('minQty', { qty: rule.min_quantity })}
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-white/5 flex justify-end gap-2">
+                                    <Link
+                                        href={`/admin/bundles/rules/${rule.id}/edit`}
+                                        className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+                                        title={t('editRule')}
+                                    >
+                                        <Edit className="h-3 w-3" />
+                                    </Link>
+                                    <DeleteRuleButton ruleId={rule.id} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Promo Codes Section */}
+            <div className="bg-zinc-900/50 border border-white/5 rounded-lg p-6">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-accent flex items-center gap-2">
+                        <Tag className="h-5 w-5" />
+                        {t('promoCodes')}
+                    </h2>
+                    <Link href="/admin/bundles/promo/create" className="bg-white text-black px-4 py-2 rounded font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm">
+                        <Plus className="h-4 w-4" />
+                        {t('createPromoCode')}
+                    </Link>
+                </div>
+
+                {promoCodes.length === 0 ? (
+                    <p className="text-gray-500 italic">{t('noPromoCodes')}</p>
+                ) : (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {promoCodes.map((promo: any) => (
+                            <div key={promo.id} className="bg-black/40 border border-white/10 rounded p-4 relative group">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-bold text-white text-lg tracking-wider">{promo.code}</h3>
+                                        <p className="text-xs text-gray-400 mt-1 line-clamp-1">{promo.description}</p>
+                                    </div>
+                                    <div className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${promo.is_active ? 'bg-green-900/40 text-green-400' : 'bg-red-900/40 text-red-400'}`}>
+                                        {promo.is_active ? t('isActive') : 'Inactive'}
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex justify-between items-end border-t border-white/5 pt-3">
+                                    <div>
+                                        <p className="text-accent font-bold text-xl">
+                                            {promo.discount_type === 'percentage'
+                                                ? `${promo.discount_value}%`
+                                                : formatCurrency(promo.discount_value)}
+                                            <span className="text-xs font-normal text-gray-500 ml-1">{t('off')}</span>
+                                        </p>
+                                        <div className="text-[10px] text-gray-500 mt-1 space-y-0.5">
+                                            {promo.max_uses && <p>{t('usedCount')}: {promo.used_count} / {promo.max_uses}</p>}
+                                            {promo.expires_at && <p>{t('expiresAt')}: {new Date(promo.expires_at).toLocaleDateString()}</p>}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1">
+                                        <Link
+                                            href={`/admin/bundles/promo/${promo.id}/edit`}
+                                            className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+                                            title={t('editPromoCode')}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Link>
+                                        <DeletePromoButton promoId={promo.id} />
+                                    </div>
                                 </div>
                             </div>
                         ))}
