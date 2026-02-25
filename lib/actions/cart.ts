@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSession } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
+import { addToCartSchema, removeFromCartSchema, removeBundleSchema, updateQuantitySchema } from '@/lib/validations/cart';
 
 export async function getCartAction() {
     try {
@@ -67,6 +68,12 @@ export async function getCartAction() {
 
 export async function addToCartAction(item: { productId: string; quantity: number; variant?: string; bundleId?: string }) {
     try {
+        const validation = addToCartSchema.safeParse(item);
+        if (!validation.success) {
+            console.error('AddToCart Validation Error:', validation.error);
+            return { error: 'Invalid input: ' + validation.error.issues.map(e => e.message).join(', ') };
+        }
+
         const session = await getSession();
         if (!session?.userId) return { error: 'Not authenticated' };
 
@@ -123,6 +130,12 @@ export async function addToCartAction(item: { productId: string; quantity: numbe
 
 export async function removeFromCartAction(productId: string, variant?: string) {
     try {
+        const validation = removeFromCartSchema.safeParse({ productId, variant });
+        if (!validation.success) {
+            console.error('RemoveFromCart Validation Error:', validation.error);
+            return { error: 'Invalid input' };
+        }
+
         const session = await getSession();
         if (!session?.userId) return { error: 'Not authenticated' };
 
@@ -153,6 +166,12 @@ export async function removeFromCartAction(productId: string, variant?: string) 
 
 export async function removeBundleAction(bundleId: string) {
     try {
+        const validation = removeBundleSchema.safeParse({ bundleId });
+        if (!validation.success) {
+            console.error('RemoveBundle Validation Error:', validation.error);
+            return { error: 'Invalid input' };
+        }
+
         const session = await getSession();
         if (!session?.userId) return { error: 'Not authenticated' };
 
@@ -176,6 +195,12 @@ export async function removeBundleAction(bundleId: string) {
 
 export async function updateQuantityAction(productId: string, variant: string | undefined, quantity: number) {
     try {
+        const validation = updateQuantitySchema.safeParse({ productId, variant, quantity });
+        if (!validation.success) {
+            console.error('UpdateQuantity Validation Error:', validation.error);
+            return { error: 'Invalid input' };
+        }
+
         const session = await getSession();
         if (!session?.userId) return { error: 'Not authenticated' };
 
