@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSession } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
+import { cartItemSchema, updateCartItemSchema } from '@/lib/validations/cart';
 
 export async function getCartAction() {
     try {
@@ -69,6 +70,19 @@ export async function addToCartAction(item: { productId: string; quantity: numbe
     try {
         const session = await getSession();
         if (!session?.userId) return { error: 'Not authenticated' };
+
+        // Validate Input
+        const result = cartItemSchema.safeParse({
+            productId: item.productId,
+            quantity: item.quantity,
+            variant: item.variant || null,
+            bundleId: item.bundleId || null
+        });
+
+        if (!result.success) {
+            console.error('[ServerAction] AddToCart: Validation Failed', result.error);
+            return { error: 'Invalid input: ' + result.error.errors.map(e => e.message).join(', ') };
+        }
 
         const supabase = createAdminClient();
 
@@ -178,6 +192,18 @@ export async function updateQuantityAction(productId: string, variant: string | 
     try {
         const session = await getSession();
         if (!session?.userId) return { error: 'Not authenticated' };
+
+        // Validate Input
+        const result = updateCartItemSchema.safeParse({
+            productId,
+            quantity,
+            variant: variant || null
+        });
+
+        if (!result.success) {
+            console.error('[ServerAction] UpdateQuantity: Validation Failed', result.error);
+            return { error: 'Invalid input: ' + result.error.errors.map(e => e.message).join(', ') };
+        }
 
         const supabase = createAdminClient();
 
