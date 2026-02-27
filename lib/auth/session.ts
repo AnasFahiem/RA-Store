@@ -2,8 +2,10 @@ import 'server-only';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { validateSecret } from './utils';
 
-const key = new TextEncoder().encode(process.env.JWT_SECRET);
+const secret = validateSecret(process.env.JWT_SECRET);
+const key = new TextEncoder().encode(secret);
 
 const cookie = {
     name: 'session',
