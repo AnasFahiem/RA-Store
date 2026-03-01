@@ -109,12 +109,35 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // SERVER-SIDE PRICE VERIFICATION
+    const productIds = items.map((item: any) => item.productId);
+    const { data: dbProducts, error: productsError } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    if (productsError || !dbProducts) {
+        console.error('Failed to fetch product prices:', productsError);
+        return { success: false, error: 'Failed to verify product prices' };
+    }
+
+    for (const item of items) {
+        const dbProduct = dbProducts.find(p => p.id === item.productId);
+        if (!dbProduct) {
+            console.error(`Product not found in database: ${item.productId}`);
+            return { success: false, error: 'Product not found' };
+        }
+        // Overwrite client-provided price with authoritative database price
+        item.price = dbProduct.base_price;
+    }
+
+    let total = items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0);
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
