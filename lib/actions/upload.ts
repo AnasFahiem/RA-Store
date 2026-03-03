@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifySession } from '@/lib/auth/session';
+import crypto from 'node:crypto';
 
 export async function uploadImage(formData: FormData) {
     try {
@@ -45,8 +46,7 @@ export async function uploadImage(formData: FormData) {
 
         // 3. Prepare File
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-        const filePath = `${fileName}`;
+        const fileName = `${crypto.randomUUID()}_${Date.now()}.${fileExt}`;
 
         // 4. Upload using Admin Client (Bypasses RLS)
         const arrayBuffer = await file.arrayBuffer();
@@ -54,7 +54,7 @@ export async function uploadImage(formData: FormData) {
 
         const { error: uploadError } = await supabaseAdmin.storage
             .from('products')
-            .upload(filePath, buffer, {
+            .upload(fileName, buffer, {
                 contentType: file.type,
                 upsert: false
             });
@@ -64,10 +64,10 @@ export async function uploadImage(formData: FormData) {
             return { error: 'Upload failed' };
         }
 
-        // 4. Get Public URL
+        // 5. Get Public URL
         const { data: { publicUrl } } = supabaseAdmin.storage
             .from('products')
-            .getPublicUrl(filePath);
+            .getPublicUrl(fileName);
 
         return { url: publicUrl };
 
