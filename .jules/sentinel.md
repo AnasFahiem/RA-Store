@@ -1,0 +1,4 @@
+## 2025-03-04 - [Authorization Bypass via Unprotected Server Actions]
+**Vulnerability:** Found multiple server actions (`addHeaderSlide`, `deleteHeaderSlide`, `updateHeaderSettings` in `lib/actions/header.ts`) that utilize `createAdminClient()` to perform database mutations without first verifying the user's role or authentication status. This effectively bypasses Row Level Security (RLS) and allows any user (or unauthenticated attacker) to manipulate header slides and settings.
+**Learning:** Using `createAdminClient()` securely requires explicit authorization checks (e.g., verifying 'admin' or 'owner' via `verifySession()`) *before* executing any database operations, as the admin client bypasses all RLS policies.
+**Prevention:** Always pair `createAdminClient()` usage in server actions with strict role-based authorization checks at the very beginning of the function. Ensure no state-modifying server actions omit these checks.
