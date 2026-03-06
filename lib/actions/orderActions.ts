@@ -6,22 +6,6 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/session';
 
-const OrderSchema = z.object({
-    name: z.string().min(2),
-    email: z.string().email(),
-    phone: z.string().min(10),
-    address: z.string().min(5),
-    city: z.string().min(2),
-    items: z.array(z.object({
-        productId: z.string(),
-        variant: z.string().nullish(), // Accepts string, null, or undefined
-        quantity: z.number().min(1),
-        price: z.number(),
-        name: z.string()
-    })),
-    saveAddress: z.boolean().optional()
-});
-
 export async function getSavedAddresses() {
     const session = await getSession();
     console.log('getSavedAddresses Session:', session);
@@ -108,13 +92,44 @@ export async function placeOrder(formData: any) {
         return { success: false, error: 'Invalid form data: ' + result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ') };
     }
 
-    const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const { name, email, phone, address, city, items, promoCode } = result.data;
     let discountTotal = 0;
     let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // Fetch authoritative prices from the database
+    const productIds = Array.from(new Set(items.map((i: any) => i.productId)));
+
+    if (productIds.length === 0) {
+        return { success: false, error: 'No items in order' };
+    }
+
+    const { data: dbProducts, error: productsError } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    if (productsError || !dbProducts) {
+        console.error('Failed to fetch product prices:', productsError);
+        return { success: false, error: 'Failed to validate item prices' };
+    }
+
+    const priceMap = new Map(dbProducts.map((p: any) => [p.id, p.base_price]));
+
+    // Calculate total using server-side prices
+    let total = 0;
+    for (const item of items) {
+        const serverPrice = priceMap.get(item.productId);
+        if (serverPrice === undefined) {
+            console.error(`Product not found in database: ${item.productId}`);
+            return { success: false, error: `Invalid product: ${item.name}` };
+        }
+        // Update item price to authoritative server price for downstream insertion
+        item.price = serverPrice;
+        total += serverPrice * item.quantity;
+    }
 
     // Validate and Apply Promo Code
     if (promoCode) {
