@@ -94,6 +94,10 @@ export async function getAdminBundles() {
 
 export async function createBundle(formData: any) {
     const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
     const result = BundleSchema.safeParse(formData);
 
     if (!result.success) {
@@ -434,6 +438,11 @@ export async function deleteDiscountRule(id: string) {
 // --- Promo Code Actions ---
 
 export async function getPromoCodes() {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return [];
+    }
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
@@ -449,6 +458,11 @@ export async function getPromoCodes() {
 
 export async function getPromoCodeById(id: string) {
     noStore();
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return null;
+    }
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
