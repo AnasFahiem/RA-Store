@@ -17,7 +17,12 @@ const OrderSchema = z.object({
         variant: z.string().nullish(), // Accepts string, null, or undefined
         quantity: z.number().min(1),
         price: z.number(),
-        name: z.string()
+        name: z.string(),
+        bundleId: z.string().optional(),
+        bundleDetails: z.object({
+            name: z.string(),
+            priceOverride: z.number().optional()
+        }).optional()
     })),
     saveAddress: z.boolean().optional()
 });
@@ -93,7 +98,12 @@ export async function placeOrder(formData: any) {
             variant: z.string().nullish(),
             quantity: z.number().min(1),
             price: z.number(),
-            name: z.string()
+            name: z.string(),
+            bundleId: z.string().optional(),
+            bundleDetails: z.object({
+                name: z.string(),
+                priceOverride: z.number().optional()
+            }).optional()
         })),
         saveAddress: z.boolean().optional(),
         promoCode: z.string().optional().nullable()
@@ -109,12 +119,132 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     let discountTotal = 0;
     let promoCodeId = null;
 
+    if (items.length === 0) {
+        return { success: false, error: 'Cannot place an order with no items' };
+    }
+
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // Server-Side Price Verification
+    // 1. Gather all unique product IDs and bundle IDs
+    const productIds = Array.from(new Set(items.map(i => i.productId))) as string[];
+    const bundleIds = Array.from(new Set(items.map(i => i.bundleId).filter(Boolean))) as string[];
+
+    // 2. Fetch authoritative prices from DB
+    const [{ data: dbProducts, error: productsError }, { data: dbBundles, error: bundlesError }] = await Promise.all([
+        supabaseAdmin.from('products').select('id, base_price').in('id', productIds),
+        bundleIds.length > 0
+            ? supabaseAdmin.from('bundles').select('id, price_override, bundle_items(product_id, quantity)').in('id', bundleIds)
+            : Promise.resolve({ data: [], error: null })
+    ]);
+
+    if (productsError || bundlesError) {
+        console.error('Failed to fetch pricing data:', productsError || bundlesError);
+        return { success: false, error: 'Internal server error verifying prices' };
+    }
+
+    const productPriceMap = new Map(dbProducts?.map(p => [p.id, p.base_price]) || []);
+    const bundleMap = new Map(dbBundles?.map(b => [b.id, b]) || []);
+
+    // 3. Calculate secure total and overwrite untrusted client prices
+    let total = 0;
+
+    // Separate standalone items from bundled items
+    const standaloneItems = items.filter(i => !i.bundleId);
+    const bundleGroups = new Map<string, typeof items>();
+
+    for (const item of items) {
+        if (!productPriceMap.has(item.productId)) {
+             return { success: false, error: `Invalid product in order: ${item.productId}` };
+        }
+        if (item.bundleId) {
+            if (!bundleGroups.has(item.bundleId)) bundleGroups.set(item.bundleId, []);
+            bundleGroups.get(item.bundleId)!.push(item);
+        }
+    }
+
+    // Process standalone items: Price * Quantity
+    for (const item of standaloneItems) {
+        const dbPrice = productPriceMap.get(item.productId) as number;
+        item.price = dbPrice;
+        total += dbPrice * item.quantity;
+    }
+
+    // Process bundled items: Apply price override per bundle instance
+    for (const [bundleId, bundleItems] of bundleGroups.entries()) {
+        const bundleRecord = bundleMap.get(bundleId);
+        if (!bundleRecord) {
+            return { success: false, error: `Invalid bundle in order: ${bundleId}` };
+        }
+
+        // Validate bundle items and their quantities against the database definition
+        const validBundleItems = bundleRecord.bundle_items as { product_id: string, quantity: number }[] || [];
+        const validBundleItemMap = new Map(validBundleItems.map(vi => [vi.product_id, vi.quantity]));
+
+        let bundleInstanceCount = Infinity; // Find the minimum multiplier across all items
+        let bundleBaseTotal = 0; // Cost of 1 instance of the bundle based on regular product prices
+
+        // Combine quantities for items with the same productId in the client array
+        // to prevent attackers from duplicating a product to bypass the length check
+        const combinedClientItems = new Map<string, number>();
+        for (const item of bundleItems) {
+            combinedClientItems.set(item.productId, (combinedClientItems.get(item.productId) || 0) + item.quantity);
+        }
+
+        for (const [productId, totalQty] of combinedClientItems.entries()) {
+            const expectedQtyPerBundle = validBundleItemMap.get(productId);
+            if (!expectedQtyPerBundle) {
+                // Item doesn't belong in this bundle! Reject order.
+                return { success: false, error: `Invalid product ${productId} for bundle ${bundleId}` };
+            }
+
+            // Calculate how many bundles this item's quantity represents
+            // E.g., if bundle requires 2 of Product A, and user sends 6, they are buying 3 bundles.
+            if (totalQty % expectedQtyPerBundle !== 0) {
+                 return { success: false, error: `Invalid quantity ratio for product ${productId} in bundle ${bundleId}` };
+            }
+
+            const instances = totalQty / expectedQtyPerBundle;
+            bundleInstanceCount = Math.min(bundleInstanceCount, instances);
+
+            const dbPrice = productPriceMap.get(productId) as number;
+            bundleBaseTotal += dbPrice * expectedQtyPerBundle;
+        }
+
+        // Ensure ALL items in the client's bundle array agree on the number of instances being purchased
+        for (const [productId, totalQty] of combinedClientItems.entries()) {
+            const expectedQtyPerBundle = validBundleItemMap.get(productId) as number;
+            if (totalQty !== expectedQtyPerBundle * bundleInstanceCount) {
+                 return { success: false, error: `Mismatched bundle instance counts for bundle ${bundleId}` };
+            }
+        }
+
+        // Ensure ALL items required by the bundle definition are present in the client's request
+        if (combinedClientItems.size !== validBundleItems.length) {
+            return { success: false, error: `Incomplete bundle definition for bundle ${bundleId}` };
+        }
+
+        const overridePrice = bundleRecord.price_override;
+        // Final price of one bundle instance
+        const bundleUnitTotal = (overridePrice !== undefined && overridePrice !== null) ? overridePrice : bundleBaseTotal;
+
+        // Total price for all instances of this bundle
+        total += bundleUnitTotal * bundleInstanceCount;
+
+        // Distribute the discounted unit price proportionally across items so order details display correctly
+        for (const item of bundleItems) {
+             const expectedQtyPerBundle = validBundleItemMap.get(item.productId) as number;
+             const dbPrice = productPriceMap.get(item.productId) as number;
+             // Contribution of this item to the base bundle total
+             const contribution = bundleBaseTotal > 0 ? ((dbPrice * expectedQtyPerBundle) / bundleBaseTotal) : 0;
+             // Store the per-unit item price including the bundle discount
+             item.price = (contribution * bundleUnitTotal) / expectedQtyPerBundle;
+        }
+    }
 
     // Validate and Apply Promo Code
     if (promoCode) {
