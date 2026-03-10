@@ -2,7 +2,6 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifySession } from '@/lib/auth/session';
-import crypto from 'crypto';
 
 export async function uploadImage(formData: FormData) {
     try {
@@ -46,8 +45,8 @@ export async function uploadImage(formData: FormData) {
 
         // 3. Prepare File
         const fileExt = file.name.split('.').pop();
-        // SECURITY: Replace predictable Math.random() with cryptographically secure randomUUID
-        const fileName = `${crypto.randomUUID()}_${Date.now()}.${fileExt}`;
+        // SECURITY: Replace predictable Math.random() with cryptographically secure Web Crypto API
+        const fileName = `${globalThis.crypto.randomUUID()}_${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
         // 4. Upload using Admin Client (Bypasses RLS)
