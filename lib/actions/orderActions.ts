@@ -14,12 +14,18 @@ const OrderSchema = z.object({
     city: z.string().min(2),
     items: z.array(z.object({
         productId: z.string(),
-        variant: z.string().nullish(), // Accepts string, null, or undefined
+        variant: z.string().nullish(),
         quantity: z.number().min(1),
         price: z.number(),
-        name: z.string()
+        name: z.string(),
+        bundleId: z.string().nullish(),
+        bundleDetails: z.object({
+            name: z.string().optional(),
+            priceOverride: z.number().optional()
+        }).nullish()
     })),
-    saveAddress: z.boolean().optional()
+    saveAddress: z.boolean().optional(),
+    promoCode: z.string().optional().nullable()
 });
 
 export async function getSavedAddresses() {
@@ -82,22 +88,7 @@ export async function getUserProfile() {
 export async function placeOrder(formData: any) {
     console.log('placeOrder received formData:', JSON.stringify(formData, null, 2));
 
-    const OrderSchema = z.object({
-        name: z.string().min(2),
-        email: z.string().email(),
-        phone: z.string().min(10),
-        address: z.string().min(5),
-        city: z.string().min(2),
-        items: z.array(z.object({
-            productId: z.string(),
-            variant: z.string().nullish(),
-            quantity: z.number().min(1),
-            price: z.number(),
-            name: z.string()
-        })),
-        saveAddress: z.boolean().optional(),
-        promoCode: z.string().optional().nullable()
-    });
+
 
     // ... (inside placeOrder)
 
@@ -109,12 +100,126 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // 1. Validate prices server-side
+    const productIds = Array.from(new Set(items.map(item => item.productId)));
+    const bundleIds = Array.from(new Set(items.map(item => item.bundleId).filter(Boolean)));
+
+    const { data: products } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    const { data: bundles } = bundleIds.length > 0
+        ? await supabaseAdmin.from('bundles').select('id, price_override').in('id', bundleIds as string[])
+        : { data: [] };
+
+    const { data: bundleItemsData } = bundleIds.length > 0
+        ? await supabaseAdmin.from('bundle_items').select('bundle_id, product_id, quantity').in('bundle_id', bundleIds as string[])
+        : { data: [] };
+
+    const productMap = new Map(products?.map(p => [p.id, p.base_price]));
+    const bundleMap = new Map(bundles?.map(b => [b.id, b.price_override]));
+    const bundleItemsMap = new Map<string, { product_id: string, quantity: number }[]>();
+
+    if (bundleItemsData) {
+        for (const row of bundleItemsData) {
+            if (!bundleItemsMap.has(row.bundle_id)) bundleItemsMap.set(row.bundle_id, []);
+            bundleItemsMap.get(row.bundle_id)!.push({ product_id: row.product_id, quantity: row.quantity });
+        }
+    }
+
+    const { groupedItems, standaloneItems } = items.reduce((acc, item) => {
+        if (item.bundleId) {
+            if (!acc.groupedItems[item.bundleId]) {
+                acc.groupedItems[item.bundleId] = { items: [] };
+            }
+            acc.groupedItems[item.bundleId].items.push(item);
+        } else {
+            acc.standaloneItems.push(item);
+        }
+        return acc;
+    }, { groupedItems: {} as Record<string, { items: typeof items }>, standaloneItems: [] as typeof items });
+
+    let standAloneTotal = 0;
+    for (const item of standaloneItems) {
+        const basePrice = productMap.get(item.productId) || 0;
+        standAloneTotal += basePrice * item.quantity;
+        item.price = basePrice;
+    }
+
+    let bundlesTotal = 0;
+    for (const [bundleId, group] of Object.entries(groupedItems)) {
+        const override = bundleMap.get(bundleId);
+        const expectedItems = bundleItemsMap.get(bundleId) || [];
+
+        // Ensure the items inside the bundle match exactly what the bundle dictates
+        const groupProductQtys = new Map<string, number>();
+        for (const item of group.items) {
+             groupProductQtys.set(item.productId, (groupProductQtys.get(item.productId) || 0) + item.quantity);
+        }
+
+        // Figure out the bundle multiplier (how many of this bundle did they buy?)
+        // We use the first expected item to find the multiplier, and then verify all other items match this multiplier.
+        let bundleMultiplier = 0;
+        let isBundleValid = true;
+
+        if (expectedItems.length > 0) {
+            const firstExpected = expectedItems[0];
+            const actualQty = groupProductQtys.get(firstExpected.product_id) || 0;
+
+            if (actualQty === 0 || actualQty % firstExpected.quantity !== 0) {
+                isBundleValid = false;
+            } else {
+                bundleMultiplier = actualQty / firstExpected.quantity;
+
+                // Verify all expected items match this multiplier
+                for (const expected of expectedItems) {
+                    if (groupProductQtys.get(expected.product_id) !== expected.quantity * bundleMultiplier) {
+                        isBundleValid = false;
+                        break;
+                    }
+                }
+
+                // Verify there are no extra unexpected items in the bundle payload
+                if (groupProductQtys.size !== expectedItems.length) {
+                    isBundleValid = false;
+                }
+            }
+        } else {
+             isBundleValid = false;
+        }
+
+        // If a user maliciously altered the bundle, we fallback to pricing it as individual items
+        if (!isBundleValid) {
+            for (const item of group.items) {
+                const basePrice = productMap.get(item.productId) || 0;
+                item.price = basePrice;
+                bundlesTotal += basePrice * item.quantity;
+            }
+            continue;
+        }
+
+        let groupTotal = 0;
+        for (const item of group.items) {
+            const basePrice = productMap.get(item.productId) || 0;
+            item.price = basePrice;
+            groupTotal += basePrice * item.quantity;
+        }
+
+        if (override !== undefined && override !== null) {
+            bundlesTotal += override * bundleMultiplier;
+        } else {
+            bundlesTotal += groupTotal;
+        }
+    }
+
+    let total = standAloneTotal + bundlesTotal;
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
