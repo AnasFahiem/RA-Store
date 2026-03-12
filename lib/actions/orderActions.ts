@@ -17,7 +17,9 @@ const OrderSchema = z.object({
         variant: z.string().nullish(), // Accepts string, null, or undefined
         quantity: z.number().min(1),
         price: z.number(),
-        name: z.string()
+        name: z.string(),
+        bundleId: z.string().optional(),
+        bundleDetails: z.any().optional()
     })),
     saveAddress: z.boolean().optional()
 });
@@ -93,7 +95,9 @@ export async function placeOrder(formData: any) {
             variant: z.string().nullish(),
             quantity: z.number().min(1),
             price: z.number(),
-            name: z.string()
+            name: z.string(),
+            bundleId: z.string().optional(),
+            bundleDetails: z.any().optional()
         })),
         saveAddress: z.boolean().optional(),
         promoCode: z.string().optional().nullable()
@@ -109,12 +113,91 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // Secure Price Calculation
+    // 1. Fetch authoritative product prices
+    const productIds = Array.from(new Set(items.map(i => i.productId)));
+    const { data: products } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    const productPrices = new Map(products?.map(p => [p.id, p.base_price]) || []);
+
+    // 2. Fetch authoritative bundle overrides
+    const bundleIds = Array.from(new Set(items.map(i => i.bundleId).filter(Boolean))) as string[];
+    let bundleOverrides = new Map<string, number | null>();
+    if (bundleIds.length > 0) {
+        const { data: bundles } = await supabaseAdmin
+            .from('bundles')
+            .select('id, price_override')
+            .in('id', bundleIds);
+        bundleOverrides = new Map(bundles?.map(b => [b.id, b.price_override]) || []);
+    }
+
+    // 3. Calculate total securely and overwrite client prices
+    let secureTotal = 0;
+
+    // Group items by bundleId
+    const standaloneItems = items.filter(i => !i.bundleId);
+    const bundleItems = items.filter(i => !!i.bundleId);
+
+    // Calculate standalone items total
+    for (const item of standaloneItems) {
+        const dbPrice = productPrices.get(item.productId) || 0;
+        item.price = dbPrice; // Overwrite client price
+        secureTotal += dbPrice * item.quantity;
+    }
+
+    // Calculate bundle items total
+    const groupedBundles = bundleItems.reduce((acc, item) => {
+        if (item.bundleId) {
+            if (!acc[item.bundleId]) acc[item.bundleId] = [];
+            acc[item.bundleId].push(item);
+        }
+        return acc;
+    }, {} as Record<string, typeof items>);
+
+    for (const [bundleId, group] of Object.entries(groupedBundles)) {
+        const override = bundleOverrides.get(bundleId);
+        if (override !== undefined && override !== null) {
+            // Calculate the total base price for one instance of this bundle
+            const singleBundleBasePrice = group.reduce((sum, item) => sum + (productPrices.get(item.productId) || 0), 0);
+
+            // Assume the bundle quantity is represented by the quantity of any item in it
+            const bundleQuantity = group[0]?.quantity || 1;
+
+            // The total cost for all quantities of this bundle
+            const bundleTotalCost = override * bundleQuantity;
+            secureTotal += bundleTotalCost;
+
+            // Distribute the override price proportionally across the items in the bundle
+            // so that the sum of the line items matches the bundle total cost.
+            for (const item of group) {
+                const dbPrice = productPrices.get(item.productId) || 0;
+                if (singleBundleBasePrice > 0) {
+                    const ratio = dbPrice / singleBundleBasePrice;
+                    // The price per unit of this item within the bundle
+                    item.price = override * ratio;
+                } else {
+                    item.price = 0;
+                }
+            }
+        } else {
+            for (const item of group) {
+                const dbPrice = productPrices.get(item.productId) || 0;
+                item.price = dbPrice; // Overwrite client price
+                secureTotal += dbPrice * item.quantity;
+            }
+        }
+    }
+
+    let total = secureTotal;
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
