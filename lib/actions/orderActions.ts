@@ -84,28 +84,13 @@ export async function getUserProfile() {
 export async function placeOrder(formData: any) {
     console.log('placeOrder received formData:', JSON.stringify(formData, null, 2));
 
-    const OrderSchema = z.object({
-        name: z.string().min(2),
-        email: z.string().email(),
-        phone: z.string().min(10),
-        address: z.string().min(5),
-        city: z.string().min(2),
-        items: z.array(z.object({
-            productId: z.string(),
-            variant: z.string().nullish(),
-            quantity: z.number().min(1),
-            price: z.number(),
-            name: z.string(),
-            bundleId: z.string().optional(),
-            bundleDetails: z.any().optional()
-        })),
-        saveAddress: z.boolean().optional(),
+    const PlaceOrderSchema = OrderSchema.extend({
         promoCode: z.string().optional().nullable()
     });
 
     // ... (inside placeOrder)
 
-    const result = OrderSchema.safeParse(formData);
+    const result = PlaceOrderSchema.safeParse(formData);
 
     if (!result.success) {
         console.error('Order validation errors:', result.error.format());
