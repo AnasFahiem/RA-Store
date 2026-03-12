@@ -145,12 +145,19 @@ export async function placeOrder(formData: any) {
     const standaloneItems = items.filter(i => !i.bundleId);
     const bundleItems = items.filter(i => !!i.bundleId);
 
+    // Helper to calculate standard items
+    const calculateStandardItems = (itemsList: typeof items) => {
+        let subtotal = 0;
+        for (const item of itemsList) {
+            const dbPrice = productPrices.get(item.productId) || 0;
+            item.price = dbPrice; // Overwrite client price
+            subtotal += dbPrice * item.quantity;
+        }
+        return subtotal;
+    };
+
     // Calculate standalone items total
-    for (const item of standaloneItems) {
-        const dbPrice = productPrices.get(item.productId) || 0;
-        item.price = dbPrice; // Overwrite client price
-        secureTotal += dbPrice * item.quantity;
-    }
+    secureTotal += calculateStandardItems(standaloneItems);
 
     // Calculate bundle items total
     const groupedBundles = bundleItems.reduce((acc, item) => {
@@ -187,11 +194,7 @@ export async function placeOrder(formData: any) {
                 }
             }
         } else {
-            for (const item of group) {
-                const dbPrice = productPrices.get(item.productId) || 0;
-                item.price = dbPrice; // Overwrite client price
-                secureTotal += dbPrice * item.quantity;
-            }
+            secureTotal += calculateStandardItems(group);
         }
     }
 
