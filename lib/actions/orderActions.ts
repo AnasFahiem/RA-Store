@@ -17,7 +17,11 @@ const OrderSchema = z.object({
         variant: z.string().nullish(), // Accepts string, null, or undefined
         quantity: z.number().min(1),
         price: z.number(),
-        name: z.string()
+        name: z.string(),
+        bundleId: z.string().optional().nullable(),
+        bundleDetails: z.object({
+            priceOverride: z.number().optional().nullable()
+        }).optional().nullable()
     })),
     saveAddress: z.boolean().optional()
 });
@@ -93,7 +97,11 @@ export async function placeOrder(formData: any) {
             variant: z.string().nullish(),
             quantity: z.number().min(1),
             price: z.number(),
-            name: z.string()
+            name: z.string(),
+            bundleId: z.string().optional().nullable(),
+            bundleDetails: z.object({
+                priceOverride: z.number().optional().nullable()
+            }).optional().nullable()
         })),
         saveAddress: z.boolean().optional(),
         promoCode: z.string().optional().nullable()
@@ -109,12 +117,128 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
-
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // 1. Authoritative Server-Side Pricing Calculation
+    let total = 0;
+
+    // Extract unique product and bundle IDs
+    const productIds = Array.from(new Set(items.map(i => i.productId)));
+    const bundleIds = Array.from(new Set(items.map(i => i.bundleId).filter(Boolean))) as string[];
+
+    // Fetch products
+    const { data: productsData } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    const productPrices = new Map((productsData || []).map(p => [p.id, p.base_price]));
+
+    // Fetch bundles for overrides and their item definitions to determine bundle quantity
+    const { data: bundlesData } = await supabaseAdmin
+        .from('bundles')
+        .select(`
+            id,
+            price_override,
+            items:bundle_items(product_id, quantity)
+        `)
+        .in('id', bundleIds);
+
+    const bundleDefinitions = new Map((bundlesData || []).map(b => [b.id, b]));
+
+    // Secure Base Calculation:
+    // 1. Validate all products exist.
+    for (const item of items) {
+        if (!productPrices.has(item.productId)) {
+            return { success: false, error: `Invalid product ID: ${item.productId}` };
+        }
+    }
+
+    // 2. Separate items
+    const standaloneItems = items.filter(i => !i.bundleId);
+    const bundledItems = items.filter(i => i.bundleId);
+
+    // 3. Charge standalone items at base price
+    for (const item of standaloneItems) {
+        const basePrice = productPrices.get(item.productId)!;
+        total += basePrice * item.quantity;
+        item.price = basePrice;
+    }
+
+    // 4. Process Bundles securely
+    const bundlesGrouped = bundledItems.reduce((acc, item) => {
+        if (!acc[item.bundleId!]) acc[item.bundleId!] = [];
+        acc[item.bundleId!].push(item);
+        return acc;
+    }, {} as Record<string, typeof items>);
+
+    for (const [bId, bItems] of Object.entries(bundlesGrouped)) {
+        const bundleDef = bundleDefinitions.get(bId);
+        const requiredItems = bundleDef?.items || [];
+        const override = bundleDef?.price_override;
+
+        // Group the client's submitted bundle items by productId
+        const clientQtys = new Map<string, number>();
+        for (const item of bItems) {
+            clientQtys.set(item.productId, (clientQtys.get(item.productId) || 0) + item.quantity);
+        }
+
+        // How many full bundles did the user actually submit?
+        let numBundlesPurchased = 0;
+        if (requiredItems.length > 0) {
+            numBundlesPurchased = Math.min(...requiredItems.map((req: any) => {
+                const clientQty = clientQtys.get(req.product_id) || 0;
+                return Math.floor(clientQty / req.quantity);
+            }));
+        }
+
+        // Value of 1 full bundle at standard base prices
+        let oneBundleBaseTotal = 0;
+        for (const req of requiredItems) {
+            oneBundleBaseTotal += (productPrices.get(req.product_id) || 0) * req.quantity;
+        }
+
+        // The discounted price for 1 full bundle
+        const oneBundleFinalPrice = (override !== undefined && override !== null) ? override : oneBundleBaseTotal;
+
+        // Charge for the full bundles
+        total += oneBundleFinalPrice * numBundlesPurchased;
+
+        // Calculate and charge for the remaining "extra/loose" items not covered by the full bundles
+        for (const [pId, totalQty] of Array.from(clientQtys.entries())) {
+            const req = requiredItems.find((r: any) => r.product_id === pId);
+            const reqQtyPerBundle = req ? req.quantity : 0;
+            const bundledQty = reqQtyPerBundle * numBundlesPurchased;
+            const looseQty = totalQty - bundledQty;
+
+            if (looseQty > 0) {
+                total += (productPrices.get(pId) || 0) * looseQty;
+            }
+        }
+
+        // Calculate a safe average unit price for the database insert.
+        for (const item of bItems) {
+            const basePrice = productPrices.get(item.productId)!;
+            const req = requiredItems.find((r: any) => r.product_id === item.productId);
+            const reqQtyPerBundle = req ? req.quantity : 0;
+            const itemBundledQty = Math.min(item.quantity, reqQtyPerBundle * numBundlesPurchased);
+            const itemLooseQty = item.quantity - itemBundledQty;
+
+            let lineTotal = 0;
+            if (override !== undefined && override !== null && oneBundleBaseTotal > 0) {
+                const discountedUnit = basePrice * (override / oneBundleBaseTotal);
+                lineTotal = (discountedUnit * itemBundledQty) + (basePrice * itemLooseQty);
+            } else {
+                lineTotal = basePrice * item.quantity;
+            }
+
+            item.price = item.quantity > 0 ? lineTotal / item.quantity : 0;
+        }
+    }
+
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
