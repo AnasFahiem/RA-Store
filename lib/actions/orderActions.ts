@@ -124,8 +124,8 @@ export async function placeOrder(formData: any) {
     let total = 0;
 
     // Extract unique product and bundle IDs
-    const productIds = Array.from(new Set(items.map(i => i.productId)));
-    const bundleIds = Array.from(new Set(items.map(i => i.bundleId).filter(Boolean))) as string[];
+    const productIds = [...new Set(items.map(i => i.productId))];
+    const bundleIds = [...new Set(items.map(i => i.bundleId).filter(Boolean))] as string[];
 
     // Fetch products
     const { data: productsData } = await supabaseAdmin
@@ -206,7 +206,7 @@ export async function placeOrder(formData: any) {
         total += oneBundleFinalPrice * numBundlesPurchased;
 
         // Calculate and charge for the remaining "extra/loose" items not covered by the full bundles
-        for (const [pId, totalQty] of Array.from(clientQtys.entries())) {
+        for (const [pId, totalQty] of clientQtys.entries()) {
             const req = requiredItems.find((r: any) => r.product_id === pId);
             const reqQtyPerBundle = req ? req.quantity : 0;
             const bundledQty = reqQtyPerBundle * numBundlesPurchased;
