@@ -155,73 +155,60 @@ export async function placeOrder(formData: any) {
         }
     }
 
-    // 2. Separate items
-    const standaloneItems = items.filter(i => !i.bundleId);
-    const bundledItems = items.filter(i => i.bundleId);
+    // 2. Process All Items
+    const bGroups = new Map<string, typeof items>();
 
-    // 3. Charge standalone items at base price
-    for (const item of standaloneItems) {
-        const basePrice = productPrices.get(item.productId)!;
-        total += basePrice * item.quantity;
-        item.price = basePrice;
+    for (const item of items) {
+        if (!item.bundleId) {
+            // Standalone item: process immediately
+            const p = productPrices.get(item.productId)!;
+            total += p * item.quantity;
+            item.price = p;
+        } else {
+            // Bundled item: group by bundle
+            const list = bGroups.get(item.bundleId) || [];
+            list.push(item);
+            bGroups.set(item.bundleId, list);
+        }
     }
 
-    // 4. Process Bundles securely
-    const bundlesGrouped = bundledItems.reduce((acc, item) => {
-        if (!acc[item.bundleId!]) acc[item.bundleId!] = [];
-        acc[item.bundleId!].push(item);
-        return acc;
-    }, {} as Record<string, typeof items>);
+    // 3. Process grouped bundles securely
+    for (const [bId, bItems] of bGroups.entries()) {
+        const def = bundleDefinitions.get(bId);
+        const reqs = def?.items || [];
+        const over = def?.price_override;
 
-    for (const [bId, bItems] of Object.entries(bundlesGrouped)) {
-        const bundleDef = bundleDefinitions.get(bId);
-        const requiredItems = bundleDef?.items || [];
-        const override = bundleDef?.price_override;
+        // Count aggregate quantities provided by client for this bundle
+        const cQtys = new Map<string, number>();
+        bItems.forEach(i => cQtys.set(i.productId, (cQtys.get(i.productId) || 0) + i.quantity));
 
-        // Group the client's submitted bundle items by productId
-        const clientQtys = new Map<string, number>();
-        for (const item of bItems) {
-            clientQtys.set(item.productId, (clientQtys.get(item.productId) || 0) + item.quantity);
-        }
+        // Determine full bundle instances matched
+        const numPurchased = reqs.length ? Math.min(...reqs.map((r: any) => Math.floor((cQtys.get(r.product_id) || 0) / r.quantity))) : 0;
 
-        // How many full bundles did the user actually submit?
-        let numBundlesPurchased = 0;
-        if (requiredItems.length > 0) {
-            numBundlesPurchased = Math.min(...requiredItems.map((req: any) => {
-                const clientQty = clientQtys.get(req.product_id) || 0;
-                return Math.floor(clientQty / req.quantity);
-            }));
-        }
+        // Base cost of one bundle without overrides
+        let oneBase = 0;
+        const remaining = new Map<string, number>();
+        reqs.forEach((r: any) => {
+            oneBase += (productPrices.get(r.product_id) || 0) * r.quantity;
+            remaining.set(r.product_id, r.quantity * numPurchased);
+        });
 
-        // Value of 1 full bundle at standard base prices
-        let oneBundleBaseTotal = 0;
-        const remainingBundledQty = new Map<string, number>();
+        // Resolve exact line-item prices
+        bItems.forEach(item => {
+            const bp = productPrices.get(item.productId)!;
+            const alloc = remaining.get(item.productId) || 0;
+            const bQty = Math.min(item.quantity, alloc);
+            const lQty = item.quantity - bQty;
 
-        for (const req of requiredItems) {
-            oneBundleBaseTotal += (productPrices.get(req.product_id) || 0) * req.quantity;
-            remainingBundledQty.set(req.product_id, req.quantity * numBundlesPurchased);
-        }
+            remaining.set(item.productId, alloc - bQty);
 
-        // Calculate a safe average unit price and total cost.
-        for (const item of bItems) {
-            const basePrice = productPrices.get(item.productId)!;
-            const allocatable = remainingBundledQty.get(item.productId) || 0;
-            const itemBundledQty = Math.min(item.quantity, allocatable);
-            const itemLooseQty = item.quantity - itemBundledQty;
+            const lineT = (over != null && oneBase > 0)
+                ? (bp * (over / oneBase) * bQty) + (bp * lQty)
+                : bp * item.quantity;
 
-            remainingBundledQty.set(item.productId, allocatable - itemBundledQty);
-
-            let lineTotal = 0;
-            if (override !== undefined && override !== null && oneBundleBaseTotal > 0) {
-                const discountedUnit = basePrice * (override / oneBundleBaseTotal);
-                lineTotal = (discountedUnit * itemBundledQty) + (basePrice * itemLooseQty);
-            } else {
-                lineTotal = basePrice * item.quantity;
-            }
-
-            total += lineTotal;
-            item.price = item.quantity > 0 ? lineTotal / item.quantity : 0;
-        }
+            total += lineT;
+            item.price = item.quantity ? lineT / item.quantity : 0;
+        });
     }
 
     let discountTotal = 0;
