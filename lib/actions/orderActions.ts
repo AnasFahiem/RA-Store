@@ -195,35 +195,21 @@ export async function placeOrder(formData: any) {
 
         // Value of 1 full bundle at standard base prices
         let oneBundleBaseTotal = 0;
+        const remainingBundledQty = new Map<string, number>();
+
         for (const req of requiredItems) {
             oneBundleBaseTotal += (productPrices.get(req.product_id) || 0) * req.quantity;
+            remainingBundledQty.set(req.product_id, req.quantity * numBundlesPurchased);
         }
 
-        // The discounted price for 1 full bundle
-        const oneBundleFinalPrice = (override !== undefined && override !== null) ? override : oneBundleBaseTotal;
-
-        // Charge for the full bundles
-        total += oneBundleFinalPrice * numBundlesPurchased;
-
-        // Calculate and charge for the remaining "extra/loose" items not covered by the full bundles
-        for (const [pId, totalQty] of clientQtys.entries()) {
-            const req = requiredItems.find((r: any) => r.product_id === pId);
-            const reqQtyPerBundle = req ? req.quantity : 0;
-            const bundledQty = reqQtyPerBundle * numBundlesPurchased;
-            const looseQty = totalQty - bundledQty;
-
-            if (looseQty > 0) {
-                total += (productPrices.get(pId) || 0) * looseQty;
-            }
-        }
-
-        // Calculate a safe average unit price for the database insert.
+        // Calculate a safe average unit price and total cost.
         for (const item of bItems) {
             const basePrice = productPrices.get(item.productId)!;
-            const req = requiredItems.find((r: any) => r.product_id === item.productId);
-            const reqQtyPerBundle = req ? req.quantity : 0;
-            const itemBundledQty = Math.min(item.quantity, reqQtyPerBundle * numBundlesPurchased);
+            const allocatable = remainingBundledQty.get(item.productId) || 0;
+            const itemBundledQty = Math.min(item.quantity, allocatable);
             const itemLooseQty = item.quantity - itemBundledQty;
+
+            remainingBundledQty.set(item.productId, allocatable - itemBundledQty);
 
             let lineTotal = 0;
             if (override !== undefined && override !== null && oneBundleBaseTotal > 0) {
@@ -233,6 +219,7 @@ export async function placeOrder(formData: any) {
                 lineTotal = basePrice * item.quantity;
             }
 
+            total += lineTotal;
             item.price = item.quantity > 0 ? lineTotal / item.quantity : 0;
         }
     }
