@@ -1,0 +1,4 @@
+## 2024-03-15 - [Add Authorization to Header and Hero Actions]
+**Vulnerability:** Broken Access Control / Authorization Bypass in Server Actions. Functions like `addHeaderSlide`, `addHeroSlide`, etc. used `createAdminClient()` (which bypasses RLS) but lacked any session verification or role authorization, allowing any user to potentially deface or modify critical site content.
+**Learning:** Next.js Server Actions using Supabase Admin client must explicitly perform `verifySession()` and check user roles (e.g. `admin` or `owner`) because the admin client bypasses all Row-Level Security rules set in the database.
+**Prevention:** Always prefix secure server actions with `const session = await verifySession(); if (session?.role !== 'admin' && session?.role !== 'owner') { return { error: 'Unauthorized' }; }` when using `createAdminClient()`.
