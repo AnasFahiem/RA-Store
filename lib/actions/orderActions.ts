@@ -109,12 +109,33 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    const productIds = items.map(item => item.productId);
+    const { data: products, error: productsError } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    if (productsError || !products) {
+        console.error('Failed to fetch products for pricing:', productsError);
+        return { success: false, error: 'Failed to validate order pricing' };
+    }
+
+    let total = 0;
+    for (const item of items) {
+        const product = products.find(p => p.id === item.productId);
+        if (!product) {
+            return { success: false, error: `Invalid product: ${item.name}` };
+        }
+        item.price = product.base_price;
+        total += product.base_price * item.quantity;
+    }
+
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
