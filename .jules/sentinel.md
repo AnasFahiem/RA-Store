@@ -1,0 +1,4 @@
+## 2024-05-24 - [Insecure Randomness for File Identifiers]
+**Vulnerability:** Use of `Math.random()` to generate unique filenames during file uploads in `lib/actions/upload.ts`.
+**Learning:** `Math.random()` is not a cryptographically secure pseudo-random number generator. Its outputs are predictable, which could theoretically allow an attacker to predict filenames, leading to file collisions or potential overwriting/access issues depending on the storage implementation.
+**Prevention:** Always use the built-in Node.js `crypto` module (e.g., `crypto.randomUUID()`) or a secure random generator when generating identifiers, tokens, or filenames that require uniqueness and security.
