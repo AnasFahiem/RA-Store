@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifySession } from '@/lib/auth/session';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 export async function uploadImage(formData: FormData) {
     try {
