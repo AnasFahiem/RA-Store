@@ -100,10 +100,78 @@ export async function createBundle(formData: any) {
         return { success: false, error: 'Invalid data' };
     }
 
-    const { name, description, type, items, priceOverride } = result.data;
-    const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
+    const { name, description, type, items, priceOverride: clientPriceOverride } = result.data;
 
+    // SECURITY VERIFICATION: Only admin/owner can create 'admin_fixed' bundles
+    if (type === 'admin_fixed') {
+        if (session?.role !== 'admin' && session?.role !== 'owner') {
+            return { success: false, error: 'Unauthorized to create admin bundles' };
+        }
+    }
+
+    const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
     const supabaseAdmin = createAdminClient();
+
+    let finalPriceOverride = clientPriceOverride;
+
+    // SECURITY VERIFICATION: Recalculate 'user_custom' bundle price server-side
+    // to prevent malicious client-provided price manipulation.
+    if (type === 'user_custom') {
+        const productIds = items.map((i: any) => i.productId);
+        const { data: products } = await supabaseAdmin
+            .from('products')
+            .select('id, base_price, category')
+            .in('id', productIds);
+
+        if (!products || products.length === 0) {
+            return { success: false, error: 'Products not found' };
+        }
+
+        let subtotal = 0;
+        let totalQuantity = 0;
+
+        // Use a Map for O(1) lookups
+        const productMap = new Map(products.map(p => [p.id, p]));
+
+        // We also need to build category info for discount rules
+        const selectedItems = items.map((i: any) => {
+            const product = productMap.get(i.productId);
+            if (product) {
+                subtotal += product.base_price * i.quantity;
+                totalQuantity += i.quantity;
+            }
+            return { product, quantity: i.quantity };
+        }).filter((i: { product?: any }) => i.product !== undefined);
+
+        // Fetch discount rules
+        const { data: rules } = await supabaseAdmin
+            .from('discount_rules')
+            .select('*')
+            .eq('is_active', true);
+
+        let discountAmount = 0;
+        if (rules && rules.length > 0) {
+            const sortedRules = rules.sort((a, b) => b.min_quantity - a.min_quantity);
+
+            for (const rule of sortedRules) {
+                if (totalQuantity >= rule.min_quantity) {
+                    if (rule.required_category) {
+                        const hasCategory = selectedItems.some((i: { product?: any }) => i.product.category === rule.required_category);
+                        if (!hasCategory) continue;
+                    }
+
+                    if (rule.discount_type === 'percentage') {
+                        discountAmount = subtotal * (rule.discount_value / 100);
+                    } else {
+                        discountAmount = rule.discount_value;
+                    }
+                    break;
+                }
+            }
+        }
+
+        finalPriceOverride = Math.max(0, subtotal - discountAmount);
+    }
 
     const { data: bundle, error: bundleError } = await supabaseAdmin
         .from('bundles')
@@ -113,7 +181,7 @@ export async function createBundle(formData: any) {
             slug,
             type,
             image: result.data.image,
-            price_override: priceOverride,
+            price_override: finalPriceOverride,
             created_by: session?.userId || null
         })
         .select()
