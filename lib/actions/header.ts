@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { checkAdmin } from '@/lib/auth/session';
 
 export interface HeaderSlide {
     id: string;
@@ -80,6 +81,9 @@ export async function getHeaderSettings() {
 }
 
 export async function addHeaderSlide(content: string, contentAr: string, backgroundColor?: string, textColor?: string) {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const supabaseAdmin = createAdminClient();
 
     // Get max sort order
@@ -116,6 +120,9 @@ export async function addHeaderSlide(content: string, contentAr: string, backgro
 }
 
 export async function deleteHeaderSlide(id: string) {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
         .from('header_slides')
@@ -133,6 +140,9 @@ export async function deleteHeaderSlide(id: string) {
 }
 
 export async function updateHeaderSettings(settings: Partial<HeaderSettings>) {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const supabaseAdmin = createAdminClient();
 
     // Upsert settings (id always 1)

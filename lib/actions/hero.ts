@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { checkAdmin } from '@/lib/auth/session';
 
 export async function getHeroSlides() {
     const supabaseAdmin = createAdminClient();
@@ -20,6 +21,9 @@ export async function getHeroSlides() {
 }
 
 export async function addHeroSlide(imageUrl: string) {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     // Get current max order to append to end
     const supabaseAdmin = createAdminClient();
     const { data: maxOrderData } = await supabaseAdmin
@@ -59,6 +63,9 @@ export async function addHeroSlide(imageUrl: string) {
 }
 
 export async function deleteHeroSlide(id: string) {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
         .from('hero_slides')
@@ -76,6 +83,9 @@ export async function deleteHeroSlide(id: string) {
 }
 
 export async function updateHeroSlideOrder(items: { id: string; sort_order: number }[]) {
+    const authError = await checkAdmin();
+    if (authError) return authError;
+
     // Supabase doesn't support bulk update with different values easily in one query without RPC
     // So we'll loop for now, or use a case statement if performance is critical (unlikely for < 10 slides)
 
