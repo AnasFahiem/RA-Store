@@ -17,7 +17,8 @@ const OrderSchema = z.object({
         variant: z.string().nullish(), // Accepts string, null, or undefined
         quantity: z.number().min(1),
         price: z.number(),
-        name: z.string()
+            name: z.string(),
+            bundleId: z.string().optional()
     })),
     saveAddress: z.boolean().optional()
 });
@@ -93,7 +94,8 @@ export async function placeOrder(formData: any) {
             variant: z.string().nullish(),
             quantity: z.number().min(1),
             price: z.number(),
-            name: z.string()
+            name: z.string(),
+            bundleId: z.string().optional()
         })),
         saveAddress: z.boolean().optional(),
         promoCode: z.string().optional().nullable()
@@ -109,12 +111,93 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // 🛡️ SECURITY: Fetch authoritative prices from DB
+    const productIds = [...new Set(items.map(i => i.productId))];
+    const { data: dbProducts } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    const productsMap = new Map((dbProducts || []).map(p => [p.id, p.base_price]));
+
+    const bundleIds = [...new Set(items.map(i => i.bundleId).filter(Boolean) as string[])];
+    let bundlesMap = new Map();
+    if (bundleIds.length > 0) {
+        const { data: dbBundles } = await supabaseAdmin
+            .from('bundles')
+            .select('id, price_override, items:bundle_items(product_id, quantity)')
+            .in('id', bundleIds);
+
+        bundlesMap = new Map((dbBundles || []).map(b => [b.id, b]));
+    }
+
+    let total = 0;
+
+    // Helper to add items at base price to total
+    const addAtBasePrice = (productId: string, quantity: number) => {
+        total += (productsMap.get(productId) || 0) * quantity;
+    };
+
+    // Group bundle items by bundleId, treat standalone as invalid bundle
+    const groupedBundles = items.reduce((acc, item) => {
+        const bid = item.bundleId || 'standalone';
+        if (!acc[bid]) acc[bid] = [];
+        acc[bid].push(item);
+        return acc;
+    }, {} as Record<string, typeof items>);
+
+    // Calculate total securely
+    for (const [bundleId, bItems] of Object.entries(groupedBundles)) {
+        const bundle = bundleId !== 'standalone' ? bundlesMap.get(bundleId) : null;
+
+        // If standalone or invalid bundle, charge all items at base price
+        if (!bundle) {
+            for (const item of bItems) {
+                addAtBasePrice(item.productId, item.quantity);
+            }
+            continue;
+        }
+
+        // Aggregate client quantities by product
+        const clientQtys = bItems.reduce((acc, item) => {
+            acc[item.productId] = (acc[item.productId] || 0) + item.quantity;
+            return acc;
+        }, {} as Record<string, number>);
+
+        // Calculate how many complete bundles we have based on requirements
+        let bundleCount = Infinity;
+        for (const req of bundle.items) {
+            const clientQty = clientQtys[req.product_id] || 0;
+            const possible = Math.floor(clientQty / req.quantity);
+            if (possible < bundleCount) bundleCount = possible;
+        }
+
+        if (bundleCount === Infinity || bundleCount === 0) bundleCount = 0;
+
+        // Add complete bundle prices
+        total += bundleCount * (bundle.price_override || 0);
+
+        // Deduct complete bundle items from clientQtys, then charge the remaining at base price
+        for (const req of bundle.items) {
+            if (clientQtys[req.product_id] !== undefined) {
+                clientQtys[req.product_id] -= bundleCount * req.quantity;
+            }
+        }
+
+        // Charge any remaining (or unrelated) items at base price
+        for (const [productId, remainingQty] of Object.entries(clientQtys)) {
+            if (remainingQty > 0) {
+                addAtBasePrice(productId, remainingQty);
+            }
+        }
+    }
+
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
