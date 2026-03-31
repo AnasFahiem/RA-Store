@@ -137,33 +137,27 @@ export async function placeOrder(formData: any) {
 
     let total = 0;
 
-    // Separate items
-    const standaloneItems = items.filter(i => !i.bundleId);
-    const bundleItems = items.filter(i => i.bundleId);
+    // Helper to add items at base price to total
+    const addAtBasePrice = (productId: string, quantity: number) => {
+        total += (productsMap.get(productId) || 0) * quantity;
+    };
 
-    // Calculate standalone total
-    for (const item of standaloneItems) {
-        const basePrice = productsMap.get(item.productId) || 0;
-        total += basePrice * item.quantity;
-    }
-
-    // Group bundle items by bundleId
-    const groupedBundles = bundleItems.reduce((acc, item) => {
-        const bid = item.bundleId!;
+    // Group bundle items by bundleId, treat standalone as invalid bundle
+    const groupedBundles = items.reduce((acc, item) => {
+        const bid = item.bundleId || 'standalone';
         if (!acc[bid]) acc[bid] = [];
         acc[bid].push(item);
         return acc;
     }, {} as Record<string, typeof items>);
 
-    // Calculate bundles total securely
+    // Calculate total securely
     for (const [bundleId, bItems] of Object.entries(groupedBundles)) {
-        const bundle = bundlesMap.get(bundleId);
+        const bundle = bundleId !== 'standalone' ? bundlesMap.get(bundleId) : null;
 
-        // If bundle is invalid, charge all items at base price
+        // If standalone or invalid bundle, charge all items at base price
         if (!bundle) {
             for (const item of bItems) {
-                const basePrice = productsMap.get(item.productId) || 0;
-                total += basePrice * item.quantity;
+                addAtBasePrice(item.productId, item.quantity);
             }
             continue;
         }
@@ -197,8 +191,7 @@ export async function placeOrder(formData: any) {
         // Charge any remaining (or unrelated) items at base price
         for (const [productId, remainingQty] of Object.entries(clientQtys)) {
             if (remainingQty > 0) {
-                const basePrice = productsMap.get(productId) || 0;
-                total += remainingQty * basePrice;
+                addAtBasePrice(productId, remainingQty);
             }
         }
     }
