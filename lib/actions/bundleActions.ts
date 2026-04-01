@@ -100,6 +100,12 @@ export async function createBundle(formData: any) {
         return { success: false, error: 'Invalid data' };
     }
 
+    // 🛡️ SECURITY: Prevent unprivileged users from creating 'admin_fixed' bundles
+    // Schema validation alone does not prevent a malicious client from passing an unauthorized enum.
+    if (result.data.type === 'admin_fixed' && session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
     const { name, description, type, items, priceOverride } = result.data;
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 

@@ -1,0 +1,4 @@
+## 2024-04-01 - [Missing Authorization in createBundle Server Action]
+**Vulnerability:** The `createBundle` server action in `lib/actions/bundleActions.ts` failed to verify the user's role before creating an `admin_fixed` bundle. This allowed potentially any user or malicious client to create a bundle of type `admin_fixed` with an arbitrarily set `price_override`, bypassing the UI and purchasing items at unexpected discounts.
+**Learning:** While the input shape was validated via `BundleSchema`, server-side role-based authorization for specific payload values (like `admin_fixed` enum and `priceOverride`) was not enforced. Validation does not equate to authorization.
+**Prevention:** Always explicitly check `session?.role === 'admin' || session?.role === 'owner'` within server actions when processing restricted logic or validating enums tied to administrative privileges.
