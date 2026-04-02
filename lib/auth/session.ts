@@ -49,6 +49,14 @@ export async function verifySession() {
     return { userId: session.userId as string, role: session.role as string };
 }
 
+export async function checkAdminAccess() {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { error: 'Unauthorized' };
+    }
+    return null;
+}
+
 export async function deleteSession() {
     (await cookies()).delete(cookie.name);
     redirect('/auth/login');
