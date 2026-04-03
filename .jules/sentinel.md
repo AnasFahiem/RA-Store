@@ -1,0 +1,4 @@
+## 2024-04-20 - Missing Server-Side Role Enforcement on Enum Types
+**Vulnerability:** The `createBundle` server action in `lib/actions/bundleActions.ts` relied solely on the frontend or schema validation (which does not check roles) to assign the `type` of a bundle. A standard user could modify the payload to set `type: 'admin_fixed'` and `priceOverride: 0`, thereby creating an admin bundle and bypassing pricing logic.
+**Learning:** Client-provided enums that define system states or privileges (like `admin_fixed` vs `user_custom`) must be explicitly authorized server-side using the session's role, as Zod schema parsing alone cannot verify the user's privilege to assign that specific enum value.
+**Prevention:** Always verify `session?.role` explicitly within the server action before allowing restricted enum values to be saved to the database.
