@@ -1,0 +1,4 @@
+## 2024-03-20 - [Fix Client-Side Price Trust in Order Processing]
+**Vulnerability:** The `placeOrder` server action in `lib/actions/orderActions.ts` was trusting the `price` field provided by the client within the `items` array to calculate the order `total_amount` (e.g., `let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);`). This is a critical parameter tampering vulnerability allowing users to arbitrarily set the price of items (e.g., to $0.01).
+**Learning:** Client-provided prices should never be trusted for financial transactions. Always treat client input as potentially malicious, especially for pricing and sensitive data.
+**Prevention:** Always fetch the authoritative base price from the database (`products.base_price`) server-side using the provided `productId`s, and recalculate totals and process payments using these trusted server-side values.
