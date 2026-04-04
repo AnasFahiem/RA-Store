@@ -109,12 +109,39 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
-
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // 🛡️ Security Fix: Fetch authoritative base prices from the database
+    // instead of trusting client-provided prices which can be manipulated.
+    const productIds = items.map(item => item.productId);
+    const { data: dbProducts, error: dbProductsError } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    if (dbProductsError || !dbProducts) {
+        console.error('Failed to fetch product prices:', dbProductsError);
+        return { success: false, error: 'Failed to validate product prices' };
+    }
+
+    const priceMap = new Map(dbProducts.map(p => [p.id, p.base_price]));
+
+    // Re-map items to use authoritative prices
+    const verifiedItems = items.map(item => {
+        const authPrice = priceMap.get(item.productId);
+        if (authPrice === undefined) {
+            throw new Error(`Product ${item.productId} not found`);
+        }
+        return {
+            ...item,
+            price: authPrice
+        };
+    });
+
+    let total = verifiedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
@@ -167,7 +194,7 @@ export async function placeOrder(formData: any) {
                 street: address,
                 city
             },
-            items: items.map((item: any) => ({
+            items: verifiedItems.map((item: any) => ({
                 product_id: item.productId,
                 quantity: item.quantity,
                 price: item.price,
@@ -207,7 +234,7 @@ export async function placeOrder(formData: any) {
 
         const adminEmails = admins?.map(a => a.email).filter(Boolean) as string[] || [];
 
-        await sendOrderEmail({ order, items, adminEmails });
+        await sendOrderEmail({ order, items: verifiedItems, adminEmails });
     } catch (e) {
         console.error('Email failed:', e);
     }
