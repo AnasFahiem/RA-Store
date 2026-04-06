@@ -1,0 +1,4 @@
+## 2024-05-24 - Server-Side Price Trust (Price Manipulation)
+**Vulnerability:** The `placeOrder` action trusted the client-provided `price` array values when calculating the total order cost, and also was vulnerable to a duplicate line item bypass.
+**Learning:** Never trust client-provided pricing data. When implementing complex bundle logic, quantities of identical products must be aggregated before applying constraints to prevent users from splitting arrays to bypass logic limits. Also, always ensure the expected input fields (like `bundleId`) are included in Zod schemas so they aren't silently dropped.
+**Prevention:** Always fetch authoritative prices (`base_price` and `price_override`) from the database immediately prior to transaction processing. Iterate through server-side definitions when verifying limits rather than trusting the client payload structure.
