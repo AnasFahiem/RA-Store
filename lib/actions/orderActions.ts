@@ -93,7 +93,8 @@ export async function placeOrder(formData: any) {
             variant: z.string().nullish(),
             quantity: z.number().min(1),
             price: z.number(),
-            name: z.string()
+            name: z.string(),
+            bundleId: z.string().optional()
         })),
         saveAddress: z.boolean().optional(),
         promoCode: z.string().optional().nullable()
@@ -109,12 +110,90 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    let total = 0;
     let discountTotal = 0;
     let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // 1. Fetch authoritative product prices
+    const productIds = [...new Set(items.map(i => i.productId))];
+    const { data: dbProducts } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    const productPrices = new Map((dbProducts || []).map(p => [p.id, p.base_price]));
+
+    // 2. Fetch authoritative bundle information
+    const bundleIds = [...new Set(items.map(i => i.bundleId).filter(Boolean))] as string[];
+    let dbBundles: any[] = [];
+    let dbBundleItems: any[] = [];
+
+    if (bundleIds.length > 0) {
+        const [bundlesRes, itemsRes] = await Promise.all([
+            supabaseAdmin.from('bundles').select('id, price_override').in('id', bundleIds),
+            supabaseAdmin.from('bundle_items').select('bundle_id, product_id, quantity').in('bundle_id', bundleIds)
+        ]);
+        dbBundles = bundlesRes.data || [];
+        dbBundleItems = itemsRes.data || [];
+    }
+
+    // 3. Securely calculate total
+    // First, process standalone items
+    const standaloneItems = items.filter(i => !i.bundleId);
+    standaloneItems.forEach(item => {
+        const basePrice = productPrices.get(item.productId) || 0;
+        item.price = basePrice; // Overwrite client price
+        total += basePrice * item.quantity;
+    });
+
+    // Then process bundle items
+    for (const bId of bundleIds) {
+        const bundleInfo = dbBundles.find(b => b.id === bId);
+        const reqs = dbBundleItems.filter(bi => bi.bundle_id === bId);
+        const cItems = items.filter(i => i.bundleId === bId);
+
+        // Aggregate client item quantities by product id to prevent duplicate line exploits
+        const aggQty = new Map<string, number>();
+        cItems.forEach(c => {
+            aggQty.set(c.productId, (aggQty.get(c.productId) || 0) + c.quantity);
+        });
+
+        // Find how many complete bundles can be formed
+        let bundleCount = reqs.length ? Math.min(...reqs.map(r => {
+            const clientQty = aggQty.get(r.product_id) || 0;
+            return Math.floor(clientQty / r.quantity);
+        })) : 0;
+
+        const overridePrice = bundleInfo?.price_override || 0;
+        total += bundleCount * overridePrice;
+
+        // Keep track of how many items we've already accounted for in bundles
+        const bundledQtyTracker = new Map<string, number>();
+        reqs.forEach(r => {
+            bundledQtyTracker.set(r.product_id, bundleCount * r.quantity);
+        });
+
+        cItems.forEach(c => {
+            const basePrice = productPrices.get(c.productId) || 0;
+            c.price = basePrice; // Set individual item price for the order record
+
+            // Determine how many of THIS specific line item are "loose"
+            const remainingToBundle = bundledQtyTracker.get(c.productId) || 0;
+
+            if (c.quantity <= remainingToBundle) {
+                // This entire line item is part of a bundle
+                bundledQtyTracker.set(c.productId, remainingToBundle - c.quantity);
+            } else {
+                // Only a portion (or none) of this line item is in a bundle
+                const looseQty = c.quantity - remainingToBundle;
+                total += looseQty * basePrice;
+                bundledQtyTracker.set(c.productId, 0); // Used up all bundled items for this product
+            }
+        });
+    }
 
     // Validate and Apply Promo Code
     if (promoCode) {
