@@ -101,6 +101,14 @@ export async function createBundle(formData: any) {
     }
 
     const { name, description, type, items, priceOverride } = result.data;
+
+    // Security: Enforce role verification for admin_fixed type or arbitrary price overrides
+    if (type === 'admin_fixed' || priceOverride !== undefined) {
+        if (session?.role !== 'admin' && session?.role !== 'owner') {
+            return { success: false, error: 'Unauthorized' };
+        }
+    }
+
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 
     const supabaseAdmin = createAdminClient();
@@ -291,7 +299,7 @@ export async function getBundleById(id: string) {
 export async function addBundleToCart(bundleId: string) {
     console.log('[addBundleToCart] Starting for Bundle:', bundleId);
     const session = await getSession();
-    let userId = session?.userId;
+    const userId = session?.userId;
     console.log('[addBundleToCart] User:', userId);
 
     const supabaseAdmin = createAdminClient();
