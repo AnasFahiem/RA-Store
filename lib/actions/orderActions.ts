@@ -5,6 +5,7 @@ import { sendOrderEmail } from '@/lib/email';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/session';
+import { validatePromoCode } from '@/lib/actions/bundleActions';
 
 const OrderSchema = z.object({
     name: z.string().min(2),
@@ -17,7 +18,8 @@ const OrderSchema = z.object({
         variant: z.string().nullish(), // Accepts string, null, or undefined
         quantity: z.number().min(1),
         price: z.number(),
-        name: z.string()
+        name: z.string(),
+        bundleId: z.string().optional().nullable()
     })),
     saveAddress: z.boolean().optional()
 });
@@ -93,7 +95,8 @@ export async function placeOrder(formData: any) {
             variant: z.string().nullish(),
             quantity: z.number().min(1),
             price: z.number(),
-            name: z.string()
+            name: z.string(),
+            bundleId: z.string().optional().nullable()
         })),
         saveAddress: z.boolean().optional(),
         promoCode: z.string().optional().nullable()
@@ -109,45 +112,118 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     let discountTotal = 0;
     let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
 
-    // Validate and Apply Promo Code
-    if (promoCode) {
-        const { data: promo } = await supabaseAdmin
-            .from('promo_codes')
-            .select('*')
-            .eq('code', promoCode.toUpperCase())
-            .single();
+    // Securely calculate total by fetching authoritative prices
+    let total = 0;
 
-        if (promo && promo.is_active) {
-            // Check expiration
-            if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
-                console.warn('Promo code expired');
-            } else if (promo.max_uses && promo.used_count >= promo.max_uses) {
-                console.warn('Promo code usage limit reached');
+    // 1. Fetch ALL required product base prices upfront
+    const allProductIds = Array.from(new Set(items.map((i: any) => i.productId)));
+    const { data: products } = await supabaseAdmin.from('products').select('id, base_price').in('id', allProductIds);
+    const priceMap = new Map((products || []).map(p => [p.id, p.base_price]));
+
+    // Helper using pre-fetched prices
+    const applyStandardPricing = (itemList: any[]) => {
+        let subtotal = 0;
+        for (const item of itemList) {
+            const basePrice = priceMap.get(item.productId);
+            if (basePrice === undefined) throw new Error(`Product not found: ${item.productId}`);
+            subtotal += basePrice * item.quantity;
+            item.price = basePrice;
+        }
+        return subtotal;
+    };
+
+    try {
+        const standaloneItems = [];
+        const bundledItemsByBundleId: Record<string, any[]> = {};
+
+        for (const item of items) {
+            if (item.bundleId) {
+                if (!bundledItemsByBundleId[item.bundleId]) bundledItemsByBundleId[item.bundleId] = [];
+                bundledItemsByBundleId[item.bundleId].push(item);
             } else {
-                // Apply discount
-                if (promo.discount_type === 'percentage') {
-                    discountTotal = (total * promo.discount_value) / 100;
-                } else {
-                    discountTotal = promo.discount_value;
+                standaloneItems.push(item);
+            }
+        }
+
+        // 2. Add standalone items
+        if (standaloneItems.length > 0) {
+            total += applyStandardPricing(standaloneItems);
+        }
+
+        // 3. Process bundles
+        const bundleIds = Object.keys(bundledItemsByBundleId);
+        if (bundleIds.length > 0) {
+            const { data: bundles } = await supabaseAdmin.from('bundles').select('id, price_override').in('id', bundleIds);
+            const bundleMap = new Map((bundles || []).map(b => [b.id, b.price_override]));
+
+            for (const [bundleId, bundleItems] of Object.entries(bundledItemsByBundleId)) {
+                const bundlePrice = bundleMap.get(bundleId);
+                const { data: bundleDefs } = bundlePrice != null
+                    ? await supabaseAdmin.from('bundle_items').select('product_id, quantity').eq('bundle_id', bundleId)
+                    : { data: null };
+
+                if (bundlePrice == null || !bundleDefs || bundleDefs.length === 0) {
+                    total += applyStandardPricing(bundleItems);
+                    continue;
                 }
 
-                // Ensure discount doesn't exceed total
-                discountTotal = Math.min(discountTotal, total);
-                total -= discountTotal;
-                promoCodeId = promo.id;
+                const userQtyMap = new Map();
+                for (const item of bundleItems) {
+                    userQtyMap.set(item.productId, (userQtyMap.get(item.productId) || 0) + item.quantity);
+                }
 
-                // Increment usage count
-                await supabaseAdmin.rpc('increment_promo_usage', { promo_id: promo.id });
-                // Fallback if RPC doesn't exist (though RPC is better for concurrency)
-                // await supabaseAdmin.from('promo_codes').update({ used_count: promo.used_count + 1 }).eq('id', promo.id);
+                const bundleCount = Math.min(...bundleDefs.map(def =>
+                    Math.floor((userQtyMap.get(def.product_id) || 0) / def.quantity)
+                ), Infinity);
+
+                const validBundleCount = bundleCount === Infinity ? 0 : bundleCount;
+                total += validBundleCount * bundlePrice;
+
+                // Calculate leftovers
+                for (const [productId, userQty] of userQtyMap.entries()) {
+                    const def = bundleDefs.find(d => d.product_id === productId);
+                    const leftoverQty = userQty - (def ? def.quantity * validBundleCount : 0);
+                    if (leftoverQty > 0) {
+                        total += leftoverQty * (priceMap.get(productId) || 0);
+                    }
+                }
+
+                // Assign base price to order record items
+                for (const item of bundleItems) {
+                    item.price = priceMap.get(item.productId) || 0;
+                }
             }
+        }
+    } catch (err: any) {
+        return { success: false, error: err.message };
+    }
+
+    // Validate and Apply Promo Code
+    if (promoCode) {
+        const promoResult = await validatePromoCode(promoCode);
+        if (promoResult.valid && promoResult.promo) {
+            const promo = promoResult.promo;
+            if (promo.type === 'percentage') {
+                discountTotal = (total * promo.value) / 100;
+            } else {
+                discountTotal = promo.value;
+            }
+
+            // Ensure discount doesn't exceed total
+            discountTotal = Math.min(discountTotal, total);
+            total -= discountTotal;
+            promoCodeId = promo.id;
+
+            // Increment usage count safely
+            await supabaseAdmin.rpc('increment_promo_usage', { promo_id: promo.id });
+        } else {
+            console.warn(`Promo code invalid: ${promoResult.error}`);
         }
     }
 
@@ -172,7 +248,8 @@ export async function placeOrder(formData: any) {
                 quantity: item.quantity,
                 price: item.price,
                 name: item.name,
-                variant: item.variant
+                variant: item.variant,
+                bundle_id: item.bundleId || null
             })),
             promo_code_id: promoCodeId,
             discount_total: discountTotal

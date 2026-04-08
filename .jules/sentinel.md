@@ -1,0 +1,4 @@
+## 2024-05-24 - [CRITICAL] Fix Server-Side Pricing Vulnerability in Checkout
+**Vulnerability:** The `placeOrder` server action in `lib/actions/orderActions.ts` calculated the order total by summing the `price` field provided by the client in the `items` array. A malicious user could modify the `price` field in the request payload and purchase items for any price (including $0).
+**Learning:** Never trust client-provided pricing data. The client can calculate and display totals for convenience, but the server must independently verify and calculate the final order total using authoritative data from the database.
+**Prevention:** Always fetch authoritative prices from the database (`products` and `bundles` tables) server-side when calculating order totals or processing transactions. Ignore client-provided prices for billing.
