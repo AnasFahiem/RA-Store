@@ -5,6 +5,7 @@ import { sendOrderEmail } from '@/lib/email';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/session';
+import { validatePromoCode } from '@/lib/actions/bundleActions';
 
 const OrderSchema = z.object({
     name: z.string().min(2),
@@ -205,36 +206,24 @@ export async function placeOrder(formData: any) {
 
     // Validate and Apply Promo Code
     if (promoCode) {
-        const { data: promo } = await supabaseAdmin
-            .from('promo_codes')
-            .select('*')
-            .eq('code', promoCode.toUpperCase())
-            .single();
-
-        if (promo && promo.is_active) {
-            // Check expiration
-            if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
-                console.warn('Promo code expired');
-            } else if (promo.max_uses && promo.used_count >= promo.max_uses) {
-                console.warn('Promo code usage limit reached');
+        const promoResult = await validatePromoCode(promoCode);
+        if (promoResult.valid && promoResult.promo) {
+            const promo = promoResult.promo;
+            if (promo.type === 'percentage') {
+                discountTotal = (total * promo.value) / 100;
             } else {
-                // Apply discount
-                if (promo.discount_type === 'percentage') {
-                    discountTotal = (total * promo.discount_value) / 100;
-                } else {
-                    discountTotal = promo.discount_value;
-                }
-
-                // Ensure discount doesn't exceed total
-                discountTotal = Math.min(discountTotal, total);
-                total -= discountTotal;
-                promoCodeId = promo.id;
-
-                // Increment usage count
-                await supabaseAdmin.rpc('increment_promo_usage', { promo_id: promo.id });
-                // Fallback if RPC doesn't exist (though RPC is better for concurrency)
-                // await supabaseAdmin.from('promo_codes').update({ used_count: promo.used_count + 1 }).eq('id', promo.id);
+                discountTotal = promo.value;
             }
+
+            // Ensure discount doesn't exceed total
+            discountTotal = Math.min(discountTotal, total);
+            total -= discountTotal;
+            promoCodeId = promo.id;
+
+            // Increment usage count safely
+            await supabaseAdmin.rpc('increment_promo_usage', { promo_id: promo.id });
+        } else {
+            console.warn(`Promo code invalid: ${promoResult.error}`);
         }
     }
 
