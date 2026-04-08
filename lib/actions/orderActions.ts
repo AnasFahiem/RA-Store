@@ -117,6 +117,25 @@ export async function placeOrder(formData: any) {
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
 
+    // Helper to fetch base prices and calculate subtotal for a group of items
+    const getFallbackPricing = async (itemsList: any[]) => {
+        const productIds = Array.from(new Set(itemsList.map(i => i.productId)));
+        const { data: products } = await supabaseAdmin.from('products').select('id, base_price').in('id', productIds);
+        const priceMap = new Map((products || []).map(p => [p.id, p.base_price]));
+        let subtotal = 0;
+        let missingProduct = null;
+        for (const item of itemsList) {
+            const authoritativePrice = priceMap.get(item.productId);
+            if (authoritativePrice === undefined) {
+                missingProduct = item.productId;
+                break;
+            }
+            subtotal += authoritativePrice * item.quantity;
+            item.price = authoritativePrice;
+        }
+        return { subtotal, missingProduct, priceMap };
+    };
+
     // Securely calculate total by fetching authoritative prices
     let total = 0;
     const standaloneItems = [];
@@ -135,18 +154,11 @@ export async function placeOrder(formData: any) {
 
     // Fetch and calculate standalone items total
     if (standaloneItems.length > 0) {
-        const productIds = standaloneItems.map(i => i.productId);
-        const { data: products } = await supabaseAdmin.from('products').select('id, base_price').in('id', productIds);
-        const priceMap = new Map((products || []).map(p => [p.id, p.base_price]));
-
-        for (const item of standaloneItems) {
-            const authoritativePrice = priceMap.get(item.productId);
-            if (authoritativePrice === undefined) {
-                return { success: false, error: `Product not found: ${item.productId}` };
-            }
-            total += authoritativePrice * item.quantity;
-            item.price = authoritativePrice; // Update to authoritative price for the order record
+        const { subtotal, missingProduct } = await getFallbackPricing(standaloneItems);
+        if (missingProduct) {
+            return { success: false, error: `Product not found: ${missingProduct}` };
         }
+        total += subtotal;
     }
 
     // Fetch and calculate bundled items total
@@ -155,82 +167,67 @@ export async function placeOrder(formData: any) {
         const { data: bundles } = await supabaseAdmin.from('bundles').select('id, price_override').in('id', bundleIds);
         const bundleMap = new Map((bundles || []).map(b => [b.id, b.price_override]));
 
-        // We also need product base prices to assign proportional prices to items in the order record,
-        // or just calculate the total and leave item prices as 0 or proportional.
-        // For simplicity and security, we calculate bundle quantity and charge remaining items at base price.
         for (const [bundleId, bundleItems] of Object.entries(bundledItemsByBundleId)) {
             const bundlePrice = bundleMap.get(bundleId);
-            if (bundlePrice === undefined || bundlePrice === null) {
-                // Fallback to sum of base prices if bundle has no override or not found
-                const productIds = bundleItems.map(i => i.productId);
-                const { data: products } = await supabaseAdmin.from('products').select('id, base_price').in('id', productIds);
-                const priceMap = new Map((products || []).map(p => [p.id, p.base_price]));
+            let bundleDefinitions: any[] | null = null;
 
-                for (const item of bundleItems) {
-                    const authoritativePrice = priceMap.get(item.productId) || 0;
-                    total += authoritativePrice * item.quantity;
-                    item.price = authoritativePrice;
+            if (bundlePrice !== undefined && bundlePrice !== null) {
+                const { data } = await supabaseAdmin.from('bundle_items').select('product_id, quantity').eq('bundle_id', bundleId);
+                bundleDefinitions = data;
+            }
+
+            if (bundlePrice === undefined || bundlePrice === null || !bundleDefinitions || bundleDefinitions.length === 0) {
+                // Fallback to sum of base prices if bundle has no override, not found, or is invalid
+                const { subtotal, missingProduct } = await getFallbackPricing(bundleItems);
+                if (missingProduct) {
+                     return { success: false, error: `Product not found: ${missingProduct}` };
                 }
-            } else {
-                // Calculate how many bundles were purchased
-                const { data: bundleDefinitions } = await supabaseAdmin.from('bundle_items').select('product_id, quantity').eq('bundle_id', bundleId);
+                total += subtotal;
+                continue;
+            }
 
-                if (!bundleDefinitions || bundleDefinitions.length === 0) {
-                     // Invalid bundle definition, fallback to standard pricing
-                     const productIds = bundleItems.map(i => i.productId);
-                     const { data: products } = await supabaseAdmin.from('products').select('id, base_price').in('id', productIds);
-                     const priceMap = new Map((products || []).map(p => [p.id, p.base_price]));
-                     for (const item of bundleItems) {
-                         const authoritativePrice = priceMap.get(item.productId) || 0;
-                         total += authoritativePrice * item.quantity;
-                         item.price = authoritativePrice;
-                     }
-                     continue;
+            // Group user items by productId
+            const userItemQuantities = new Map();
+            for (const item of bundleItems) {
+                userItemQuantities.set(item.productId, (userItemQuantities.get(item.productId) || 0) + item.quantity);
+            }
+
+            // Calculate minimum bundle ratio
+            let bundleCount = Infinity;
+            for (const def of bundleDefinitions) {
+                const userQty = userItemQuantities.get(def.product_id) || 0;
+                const ratio = Math.floor(userQty / def.quantity);
+                if (ratio < bundleCount) {
+                    bundleCount = ratio;
                 }
+            }
 
-                // Group user items by productId
-                const userItemQuantities = new Map();
-                for (const item of bundleItems) {
-                    userItemQuantities.set(item.productId, (userItemQuantities.get(item.productId) || 0) + item.quantity);
+            if (bundleCount === Infinity || bundleCount === 0) {
+                 bundleCount = 0;
+            }
+
+            total += bundleCount * bundlePrice;
+
+            // Fetch base prices to calculate leftover items and assign to order record
+            const productIds = Array.from(userItemQuantities.keys());
+            const { data: products } = await supabaseAdmin.from('products').select('id, base_price').in('id', productIds);
+            const priceMap = new Map((products || []).map(p => [p.id, p.base_price]));
+
+            for (const [productId, userQty] of userItemQuantities.entries()) {
+                const def = bundleDefinitions.find(d => d.product_id === productId);
+                const requiredQty = def ? def.quantity * bundleCount : 0;
+                const leftoverQty = userQty - requiredQty;
+
+                const authoritativePrice = priceMap.get(productId) || 0;
+
+                if (leftoverQty > 0) {
+                    total += leftoverQty * authoritativePrice;
                 }
+            }
 
-                // Calculate minimum bundle ratio
-                let bundleCount = Infinity;
-                for (const def of bundleDefinitions) {
-                    const userQty = userItemQuantities.get(def.product_id) || 0;
-                    const ratio = Math.floor(userQty / def.quantity);
-                    if (ratio < bundleCount) {
-                        bundleCount = ratio;
-                    }
-                }
-
-                if (bundleCount === Infinity || bundleCount === 0) {
-                     bundleCount = 0;
-                }
-
-                total += bundleCount * bundlePrice;
-
-                // Calculate leftover items that don't fit into the bundle
-                const productIds = Array.from(userItemQuantities.keys());
-                const { data: products } = await supabaseAdmin.from('products').select('id, base_price').in('id', productIds);
-                const priceMap = new Map((products || []).map(p => [p.id, p.base_price]));
-
-                for (const [productId, userQty] of userItemQuantities.entries()) {
-                    const def = bundleDefinitions.find(d => d.product_id === productId);
-                    const requiredQty = def ? def.quantity * bundleCount : 0;
-                    const leftoverQty = userQty - requiredQty;
-
-                    const authoritativePrice = priceMap.get(productId) || 0;
-
-                    if (leftoverQty > 0) {
-                        total += leftoverQty * authoritativePrice;
-                    }
-                }
-
-                // Assign base price to original items for the order record
-                for (const item of bundleItems) {
-                    item.price = priceMap.get(item.productId) || 0;
-                }
+            // Assign base price to original items for the order record
+            for (const item of bundleItems) {
+                item.price = priceMap.get(item.productId) || 0;
             }
         }
     }
