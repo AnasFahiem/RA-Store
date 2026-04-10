@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { verifySession } from '@/lib/auth/session';
+import crypto from 'node:crypto';
 
 export async function uploadImage(formData: FormData) {
     try {
@@ -44,8 +45,16 @@ export async function uploadImage(formData: FormData) {
         }
 
         // 3. Prepare File
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const fileExt = file.name.split('.').pop()?.toLowerCase();
+
+        // Ensure extension is safe before proceeding
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        if (!fileExt || !allowedExtensions.includes(fileExt)) {
+            console.error('Server Action: Invalid file extension:', fileExt);
+            return { error: 'Invalid file type' };
+        }
+
+        const fileName = `${crypto.randomUUID()}_${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
         // 4. Upload using Admin Client (Bypasses RLS)
