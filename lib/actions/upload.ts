@@ -44,8 +44,17 @@ export async function uploadImage(formData: FormData) {
         }
 
         // 3. Prepare File
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const fileExt = file.name.split('.').pop()?.toLowerCase();
+
+        // Security: Validate file extension server-side
+        const allowedExtensions = ['png', 'jpg', 'jpeg', 'webp'];
+        if (!fileExt || !allowedExtensions.includes(fileExt)) {
+            console.error(`Server Action: Invalid file extension rejected: ${fileExt}`);
+            return { error: 'Invalid file type. Only PNG, JPG, JPEG, and WEBP are allowed.' };
+        }
+
+        // Security: Use cryptographically secure random UUID for filename
+        const fileName = `${crypto.randomUUID()}_${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
         // 4. Upload using Admin Client (Bypasses RLS)
