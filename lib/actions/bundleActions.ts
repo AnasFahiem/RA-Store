@@ -103,6 +103,12 @@ export async function createBundle(formData: any) {
     const { name, description, type, items, priceOverride } = result.data;
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 
+    if (type === 'admin_fixed' || priceOverride !== undefined) {
+        if (session?.role !== 'admin' && session?.role !== 'owner') {
+            return { success: false, error: 'Unauthorized' };
+        }
+    }
+
     const supabaseAdmin = createAdminClient();
 
     const { data: bundle, error: bundleError } = await supabaseAdmin
