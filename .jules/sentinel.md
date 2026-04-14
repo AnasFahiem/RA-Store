@@ -1,0 +1,4 @@
+## 2025-04-14 - Fix Authorization Bypass in Bundle Creation
+**Vulnerability:** A broken access control vulnerability in `createBundle` allowed standard users to create 'admin_fixed' bundles and assign arbitrary `price_override` values.
+**Learning:** The `createBundle` server action parsed client data (including `type` and `priceOverride`) from the request and used it to write to the `bundles` table via `createAdminClient` (which bypasses RLS). There was no server-side validation to ensure that users creating 'admin_fixed' bundles or setting a price override actually had administrative privileges.
+**Prevention:** Always enforce explicit server-side role checks (`session?.role === 'admin' || session?.role === 'owner'`) before writing sensitive state variables or allowing state transitions that are restricted by business logic, especially when using an admin database client that ignores Row Level Security.
