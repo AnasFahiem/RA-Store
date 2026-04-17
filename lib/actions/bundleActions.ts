@@ -41,6 +41,11 @@ const PromoCodeSchema = z.object({
 // --- Actions ---
 
 export async function getDiscountRules() {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return [];
+    }
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('discount_rules')
@@ -56,6 +61,11 @@ export async function getDiscountRules() {
 }
 
 export async function getDiscountRuleById(id: string) {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return null;
+    }
+
     noStore();
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
@@ -434,6 +444,11 @@ export async function deleteDiscountRule(id: string) {
 // --- Promo Code Actions ---
 
 export async function getPromoCodes() {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return [];
+    }
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
@@ -448,6 +463,11 @@ export async function getPromoCodes() {
 }
 
 export async function getPromoCodeById(id: string) {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return null;
+    }
+
     noStore();
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
