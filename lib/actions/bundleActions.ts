@@ -94,13 +94,28 @@ export async function getAdminBundles() {
 
 export async function createBundle(formData: any) {
     const session = await getSession();
+
+    if (!session?.userId) {
+        return { success: false, error: 'Unauthorized' };
+    }
+
     const result = BundleSchema.safeParse(formData);
 
     if (!result.success) {
         return { success: false, error: 'Invalid data' };
     }
 
-    const { name, description, type, items, priceOverride } = result.data;
+    const { name, description, type, items } = result.data;
+    let { priceOverride } = result.data;
+
+    if (type === 'admin_fixed' && session.role !== 'admin' && session.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
+    if (priceOverride !== undefined && session.role !== 'admin' && session.role !== 'owner') {
+        priceOverride = undefined;
+    }
+
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 
     const supabaseAdmin = createAdminClient();
