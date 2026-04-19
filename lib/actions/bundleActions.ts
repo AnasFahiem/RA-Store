@@ -101,6 +101,13 @@ export async function createBundle(formData: any) {
     }
 
     const { name, description, type, items, priceOverride } = result.data;
+
+    // Enforce admin/owner role for admin_fixed bundles or priceOverrides
+    if (type === 'admin_fixed' || priceOverride !== undefined) {
+        if (session?.role !== 'admin' && session?.role !== 'owner') {
+            return { success: false, error: 'Unauthorized to create admin bundles or set price overrides' };
+        }
+    }
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 
     const supabaseAdmin = createAdminClient();
