@@ -1,7 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getSession } from '@/lib/auth/session';
+import { verifyAdminAction } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 export interface HeaderSlide {
@@ -81,10 +81,8 @@ export async function getHeaderSettings() {
 }
 
 export async function addHeaderSlide(content: string, contentAr: string, backgroundColor?: string, textColor?: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { error: 'Unauthorized' };
-    }
+    const authError = await verifyAdminAction();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
 
@@ -122,10 +120,8 @@ export async function addHeaderSlide(content: string, contentAr: string, backgro
 }
 
 export async function deleteHeaderSlide(id: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { error: 'Unauthorized' };
-    }
+    const authError = await verifyAdminAction();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
@@ -144,10 +140,8 @@ export async function deleteHeaderSlide(id: string) {
 }
 
 export async function updateHeaderSettings(settings: Partial<HeaderSettings>) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { error: 'Unauthorized' };
-    }
+    const authError = await verifyAdminAction();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
 

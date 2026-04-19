@@ -1,7 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getSession } from '@/lib/auth/session';
+import { verifyAdminAction } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 export async function getHeroSlides() {
@@ -21,10 +21,8 @@ export async function getHeroSlides() {
 }
 
 export async function addHeroSlide(imageUrl: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { error: 'Unauthorized' };
-    }
+    const authError = await verifyAdminAction();
+    if (authError) return authError;
 
     // Get current max order to append to end
     const supabaseAdmin = createAdminClient();
@@ -65,10 +63,8 @@ export async function addHeroSlide(imageUrl: string) {
 }
 
 export async function deleteHeroSlide(id: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { error: 'Unauthorized' };
-    }
+    const authError = await verifyAdminAction();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
@@ -87,10 +83,8 @@ export async function deleteHeroSlide(id: string) {
 }
 
 export async function updateHeroSlideOrder(items: { id: string; sort_order: number }[]) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { error: 'Unauthorized' };
-    }
+    const authError = await verifyAdminAction();
+    if (authError) return authError;
 
     // Supabase doesn't support bulk update with different values easily in one query without RPC
     // So we'll loop for now, or use a case statement if performance is critical (unlikely for < 10 slides)

@@ -75,7 +75,7 @@ export default function AdminHeroPage() {
         setUploading(true);
         try {
             const result = await addHeroSlide(url);
-            if (result.success) {
+            if ('success' in result && result.success) {
                 loadData();
                 router.refresh();
             } else {
@@ -137,7 +137,7 @@ export default function AdminHeroPage() {
                 newSlideText || undefined
             );
 
-            if (result.success) {
+            if ('success' in result && result.success) {
                 setNewHeaderContent('');
                 setNewHeaderContentAr('');
                 setNewSlideBg('');
