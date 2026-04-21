@@ -64,3 +64,11 @@ export async function getSession() {
 
     return { userId: session.userId as string, role: session.role as string };
 }
+
+export async function verifyAdminAction() {
+    const session = await getSession();
+    if (!session || (session.role !== 'admin' && session.role !== 'owner')) {
+        return { error: 'Unauthorized' };
+    }
+    return null;
+}
