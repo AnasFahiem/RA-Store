@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { formatCurrency } from './utils/format';
+import { escapeHtml } from './utils/html';
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -26,9 +27,9 @@ export async function sendOrderEmail({ order, items, adminEmails }: { order: any
         }
     }
 
-    const customerName = shippingAddress?.name || order.customer_name || 'Guest';
-    const customerEmail = shippingAddress?.email || order.customer_email || 'No Email';
-    const customerPhone = shippingAddress?.phone || order.customer_phone || 'No Phone';
+    const customerName = escapeHtml(shippingAddress?.name || order.customer_name || 'Guest');
+    const customerEmail = escapeHtml(shippingAddress?.email || order.customer_email || 'No Email');
+    const customerPhone = escapeHtml(shippingAddress?.phone || order.customer_phone || 'No Phone');
 
     console.log('SendOrderEmail Debug:', {
         orderId: order.id,
@@ -43,16 +44,16 @@ export async function sendOrderEmail({ order, items, adminEmails }: { order: any
     if (shippingAddress) {
         const { street, city } = shippingAddress;
         if (street || city) {
-            addressString = `${street || ''}, ${city || ''}`;
+            addressString = escapeHtml(`${street || ''}, ${city || ''}`);
         } else if (typeof order.shipping_address === 'string') {
             // Fallback to raw string if parsing failed but it was a string
-            addressString = order.shipping_address;
+            addressString = escapeHtml(order.shipping_address);
         }
     }
 
     const itemsHtml = items.map(i => `
     <tr style="border-bottom: 1px solid #333;">
-        <td style="padding: 12px; color: #e5e5e5;">${i.name} <span style="color: #888;">${i.variant ? `(${i.variant})` : ''}</span></td>
+        <td style="padding: 12px; color: #e5e5e5;">${escapeHtml(i.name)} <span style="color: #888;">${i.variant ? `(${escapeHtml(i.variant)})` : ''}</span></td>
         <td style="padding: 12px; color: #e5e5e5; text-align: center;">${i.quantity}</td>
         <td style="padding: 12px; color: #e5e5e5; text-align: right;">${formatCurrency(i.price)}</td>
     </tr>
@@ -149,8 +150,8 @@ export async function sendOrderEmail({ order, items, adminEmails }: { order: any
 
 export async function sendStatusUpdateEmail({ order, newStatus }: { order: any; newStatus: string }) {
     // Extract customer details (similar to sendOrderEmail)
-    const customerName = order.shipping_address?.name || order.customer_name || 'Guest';
-    const customerEmail = order.shipping_address?.email || order.customer_email || 'No Email';
+    const customerName = escapeHtml(order.shipping_address?.name || order.customer_name || 'Guest');
+    const customerEmail = escapeHtml(order.shipping_address?.email || order.customer_email || 'No Email');
 
     // Determine content based on status
     let title = 'Order Update';
