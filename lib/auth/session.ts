@@ -3,6 +3,9 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set. This is a critical security vulnerability that could result in zero-length JWT signing keys.');
+}
 const key = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const cookie = {
