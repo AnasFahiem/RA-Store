@@ -3,6 +3,9 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set');
+}
 const key = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const cookie = {
@@ -63,4 +66,14 @@ export async function getSession() {
     }
 
     return { userId: session.userId as string, role: session.role as string };
+}
+
+export async function verifyAdminAction() {
+    const session = await getSession();
+
+    if (!session || (session.role !== 'admin' && session.role !== 'owner')) {
+        return { error: 'Unauthorized' };
+    }
+
+    return null;
 }
