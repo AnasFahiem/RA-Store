@@ -15,6 +15,7 @@ const OrderSchema = z.object({
     items: z.array(z.object({
         productId: z.string(),
         variant: z.string().nullish(), // Accepts string, null, or undefined
+        bundleId: z.string().optional(),
         quantity: z.number().min(1),
         price: z.number(),
         name: z.string()
@@ -91,6 +92,7 @@ export async function placeOrder(formData: any) {
         items: z.array(z.object({
             productId: z.string(),
             variant: z.string().nullish(),
+            bundleId: z.string().optional(),
             quantity: z.number().min(1),
             price: z.number(),
             name: z.string()
@@ -109,12 +111,137 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // Secure Pricing: Fetch authoritative prices from database
+    const productIds = [...new Set(items.map(i => i.productId))];
+    const bundleIds = [...new Set(items.map(i => i.bundleId).filter(Boolean))] as string[];
+
+    // Fetch Products
+    const { data: dbProducts, error: productsError } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    if (productsError) {
+        console.error('Failed to fetch product prices:', productsError);
+        return { success: false, error: 'Internal pricing error' };
+    }
+
+    const productPriceMap = new Map(dbProducts?.map(p => [p.id, p.base_price]) || []);
+
+    // Fetch Bundles
+    let dbBundles: any[] = [];
+    if (bundleIds.length > 0) {
+        const { data: bData, error: bError } = await supabaseAdmin
+            .from('bundles')
+            .select(`
+                id,
+                price_override,
+                is_active,
+                bundle_items ( product_id, quantity )
+            `)
+            .in('id', bundleIds)
+            .eq('is_active', true);
+
+        if (bError) {
+            console.error('Failed to fetch bundles:', bError);
+        } else {
+            dbBundles = bData || [];
+        }
+    }
+
+    const bundleMap = new Map(dbBundles.map(b => [b.id, b]));
+
+    // Calculate Secure Total
+    let total = 0;
+
+    // Group items by bundleId
+    const standaloneItems = items.filter(i => !i.bundleId);
+    const bundledItems = items.filter(i => i.bundleId).reduce((acc, item) => {
+        if (!item.bundleId) return acc;
+        if (!acc[item.bundleId]) acc[item.bundleId] = [];
+        acc[item.bundleId].push(item);
+        return acc;
+    }, {} as Record<string, typeof items>);
+
+    // Process standalone items
+    for (const item of standaloneItems) {
+        const basePrice = productPriceMap.get(item.productId) || 0;
+        item.price = basePrice; // Overwrite client price with DB price
+        total += basePrice * item.quantity;
+    }
+
+    // Process bundled items
+    for (const [bundleId, groupItems] of Object.entries(bundledItems)) {
+        const bundle = bundleMap.get(bundleId);
+
+        if (!bundle || !bundle.price_override) {
+            // Bundle invalid or no override, charge standard price
+            for (const item of groupItems) {
+                const basePrice = productPriceMap.get(item.productId) || 0;
+                item.price = basePrice;
+                total += basePrice * item.quantity;
+            }
+            continue;
+        }
+
+        // Calculate bundleCount (how many times the full bundle is satisfied)
+        let bundleCount = Infinity;
+        for (const reqItem of bundle.bundle_items || []) {
+            const sumQty = groupItems
+                .filter(i => i.productId === reqItem.product_id)
+                .reduce((s, i) => s + i.quantity, 0);
+            const possibleCount = Math.floor(sumQty / (reqItem.quantity || 1));
+            bundleCount = Math.min(bundleCount, possibleCount);
+        }
+
+        if (bundleCount === Infinity || bundleCount <= 0 || !bundle.bundle_items?.length) {
+            bundleCount = 0;
+        }
+
+        // Add bundled price
+        total += bundleCount * bundle.price_override;
+
+        // Calculate remaining items and set item base prices
+        // Since price is stored per item, we just set item.price to base_price and let the total_amount handle the discount.
+        // We need to charge base_price for items exceeding the bundleCount.
+
+        let remainingToCharge = 0;
+
+        // Track how many we consumed for the bundle
+        const consumedQtyMap = new Map();
+        for (const reqItem of bundle.bundle_items || []) {
+            consumedQtyMap.set(reqItem.product_id, bundleCount * (reqItem.quantity || 1));
+        }
+
+        for (const item of groupItems) {
+            const basePrice = productPriceMap.get(item.productId) || 0;
+            item.price = basePrice; // Overwrite client price
+
+            let qtyToChargeBase = item.quantity;
+            const consumed = consumedQtyMap.get(item.productId) || 0;
+
+            if (consumed > 0) {
+                if (qtyToChargeBase >= consumed) {
+                    qtyToChargeBase -= consumed;
+                    consumedQtyMap.set(item.productId, 0);
+                } else {
+                    consumedQtyMap.set(item.productId, consumed - qtyToChargeBase);
+                    qtyToChargeBase = 0;
+                }
+            }
+
+            remainingToCharge += qtyToChargeBase * basePrice;
+        }
+
+        total += remainingToCharge;
+    }
+
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
