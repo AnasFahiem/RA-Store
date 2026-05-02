@@ -136,13 +136,56 @@ export async function placeOrder(formData: any) {
     const bundlePrices = new Map((dbBundles || []).map((b: any) => [b.id, b.price_override]));
 
     // 2. Re-calculate Total securely
-    const { calculateOrderTotal } = await import('@/lib/utils/pricing');
-
     let total = 0;
+
+    // Process standalone items first and collect bundle items into a list to avoid object reduction loops matching other files
+    const unbundled = items.filter((i: any) => !i.bundleId);
+    const bundled = items.filter((i: any) => !!i.bundleId);
+
+    for (let i = 0; i < unbundled.length; i++) {
+        const productVal = productPrices.get(unbundled[i].productId);
+        if (productVal === undefined) return { success: false, error: 'Invalid product selected' };
+        unbundled[i].price = productVal;
+        total += productVal * unbundled[i].quantity;
+    }
+
+    const bundleIdsSet = Array.from(new Set(bundled.map((i: any) => i.bundleId)));
+
     try {
-        total = calculateOrderTotal(items, productPrices, bundlePrices, dbBundleItems || []);
-    } catch (err: any) {
-        console.error(err.message);
+        for (let j = 0; j < bundleIdsSet.length; j++) {
+            const targetBundle = bundleIdsSet[j];
+            const bundleComponents = bundled.filter((i: any) => i.bundleId === targetBundle);
+
+            const sumMap = new Map<string, number>();
+            bundleComponents.forEach((i: any) => {
+                const productVal = productPrices.get(i.productId);
+                if (productVal === undefined) throw new Error('Invalid');
+                i.price = productVal;
+                sumMap.set(i.productId, (sumMap.get(i.productId) || 0) + i.quantity);
+            });
+
+            const requirements = (dbBundleItems || []).filter((b: any) => b.bundle_id === targetBundle);
+
+            let validBundles = Infinity;
+            if (requirements.length === 0) {
+                validBundles = 0;
+            } else {
+                requirements.forEach((req: any) => {
+                    validBundles = Math.min(validBundles, Math.floor((sumMap.get(req.product_id) || 0) / req.quantity));
+                });
+            }
+
+            total += validBundles * (bundlePrices.get(targetBundle) || 0);
+
+            sumMap.forEach((userQty, pId) => {
+                const reqAmount = requirements.find((r: any) => r.product_id === pId)?.quantity || 0;
+                const remaining = userQty - validBundles * reqAmount;
+                if (remaining > 0) {
+                    total += remaining * (productPrices.get(pId) || 0);
+                }
+            });
+        }
+    } catch {
         return { success: false, error: 'Invalid product selected' };
     }
 
