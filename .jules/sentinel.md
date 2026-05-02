@@ -1,0 +1,4 @@
+## 2024-05-02 - Client-Side Price Trust in Order Processing
+**Vulnerability:** The `placeOrder` server action trusted the item prices provided in the client's form data payload. An attacker could manipulate the request to set the price of all items to 0 and checkout for free.
+**Learning:** In Next.js Server Actions, complex objects passed from the client must be treated as entirely untrusted. Price calculation specifically was done directly on the `items` array rather than fetching the authoritative `base_price` from the database, allowing severe price manipulation.
+**Prevention:** Never trust client-provided pricing or calculated totals. Always fetch the authoritative prices (`base_price` for products, `price_override` for bundles) from the database using the submitted IDs on the server side, and recalculate the final total before saving to the database or initiating payment.

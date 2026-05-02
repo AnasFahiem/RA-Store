@@ -17,7 +17,8 @@ const OrderSchema = z.object({
         variant: z.string().nullish(), // Accepts string, null, or undefined
         quantity: z.number().min(1),
         price: z.number(),
-        name: z.string()
+        name: z.string(),
+        bundleId: z.string().optional().nullable()
     })),
     saveAddress: z.boolean().optional()
 });
@@ -93,7 +94,8 @@ export async function placeOrder(formData: any) {
             variant: z.string().nullish(),
             quantity: z.number().min(1),
             price: z.number(),
-            name: z.string()
+            name: z.string(),
+            bundleId: z.string().optional().nullable()
         })),
         saveAddress: z.boolean().optional(),
         promoCode: z.string().optional().nullable()
@@ -109,12 +111,78 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // 1. Fetch authoritative pricing from the database
+    const productIds = Array.from(new Set(items.map((i: any) => i.productId)));
+    const bundleIds = Array.from(new Set(items.map((i: any) => i.bundleId).filter(Boolean)));
+
+    const { data: dbProducts } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    const { data: dbBundles } = bundleIds.length > 0
+        ? await supabaseAdmin.from('bundles').select('id, price_override').in('id', bundleIds)
+        : { data: [] };
+
+    const { data: dbBundleItems } = bundleIds.length > 0
+        ? await supabaseAdmin.from('bundle_items').select('bundle_id, product_id, quantity').in('bundle_id', bundleIds)
+        : { data: [] };
+
+    const productPrices = new Map((dbProducts || []).map((p: any) => [p.id, p.base_price]));
+    const bundlePrices = new Map((dbBundles || []).map((b: any) => [b.id, b.price_override]));
+
+    // 2. Re-calculate Total securely
+    let total = 0;
+    const bundleQuantities: Record<string, Record<string, number>> = {};
+
+    for (const item of items) {
+        // Enforce DB price over client provided price. Reject if not found.
+        const dbPrice = productPrices.get(item.productId);
+        if (dbPrice === undefined) {
+            console.error('Invalid product submitted:', item.productId);
+            return { success: false, error: 'Invalid product selected' };
+        }
+        item.price = dbPrice;
+
+        if (item.bundleId) {
+            if (!bundleQuantities[item.bundleId]) bundleQuantities[item.bundleId] = {};
+            bundleQuantities[item.bundleId][item.productId] = (bundleQuantities[item.bundleId][item.productId] || 0) + item.quantity;
+        } else {
+            total += item.price * item.quantity;
+        }
+    }
+
+    for (const [bId, bProducts] of Object.entries(bundleQuantities)) {
+        const bItems = (dbBundleItems || []).filter((b: any) => b.bundle_id === bId);
+        let bundleCount = Infinity;
+        if (bItems.length === 0) {
+            bundleCount = 0;
+        } else {
+            for (const req of bItems) {
+                const subQty = bProducts[req.product_id] || 0;
+                bundleCount = Math.min(bundleCount, Math.floor(subQty / req.quantity));
+            }
+        }
+
+        const bPrice = bundlePrices.get(bId) ?? 0;
+        total += bundleCount * bPrice;
+
+        for (const [pId, qty] of Object.entries(bProducts)) {
+            const reqItem = bItems.find((b: any) => b.product_id === pId);
+            const reqQty = reqItem ? reqItem.quantity : 0;
+            const remainingQty = qty - (bundleCount * reqQty);
+            if (remainingQty > 0) {
+                total += remainingQty * (productPrices.get(pId) || 0);
+            }
+        }
+    }
+
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
@@ -172,7 +240,8 @@ export async function placeOrder(formData: any) {
                 quantity: item.quantity,
                 price: item.price,
                 name: item.name,
-                variant: item.variant
+                variant: item.variant,
+                bundle_id: item.bundleId || null
             })),
             promo_code_id: promoCodeId,
             discount_total: discountTotal
