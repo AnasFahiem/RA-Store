@@ -4,48 +4,46 @@ export function calculateOrderTotal(
     dbBundles: Map<string, number>,
     dbBundleItems: any[]
 ) {
-    let total = 0;
-    const bundleQuantities: Record<string, Record<string, number>> = {};
+    let finalOrderTotal = 0;
 
-    for (const item of items) {
-        const dbPrice = dbProducts.get(item.productId);
-        if (dbPrice === undefined) {
-            throw new Error(`Invalid product selected: ${item.productId}`);
+    // Group submitted product quantities by bundleId
+    const bundleItemGroups = items.reduce((acc, currentItem) => {
+        const itemDbPrice = dbProducts.get(currentItem.productId);
+        if (itemDbPrice === undefined) {
+            throw new Error(`Invalid product selected: ${currentItem.productId}`);
         }
-        item.price = dbPrice;
+        currentItem.price = itemDbPrice;
 
-        if (item.bundleId) {
-            if (!bundleQuantities[item.bundleId]) bundleQuantities[item.bundleId] = {};
-            bundleQuantities[item.bundleId][item.productId] = (bundleQuantities[item.bundleId][item.productId] || 0) + item.quantity;
+        if (currentItem.bundleId) {
+            acc[currentItem.bundleId] = acc[currentItem.bundleId] || {};
+            acc[currentItem.bundleId][currentItem.productId] = (acc[currentItem.bundleId][currentItem.productId] || 0) + currentItem.quantity;
         } else {
-            total += item.price * item.quantity;
+            finalOrderTotal += currentItem.price * currentItem.quantity;
         }
-    }
+        return acc;
+    }, {} as Record<string, Record<string, number>>);
 
-    for (const [bId, bProducts] of Object.entries(bundleQuantities)) {
-        const bItems = dbBundleItems.filter((b: any) => b.bundle_id === bId);
-        let bundleCount = Infinity;
-        if (bItems.length === 0) {
-            bundleCount = 0;
-        } else {
-            for (const req of bItems) {
-                const subQty = bProducts[req.product_id] || 0;
-                bundleCount = Math.min(bundleCount, Math.floor(subQty / req.quantity));
+    // Process each bundle group
+    Object.entries(bundleItemGroups).forEach(([bId, groupProducts]) => {
+        const prods = groupProducts as Record<string, number>;
+        const reqDefs = dbBundleItems.filter(b => b.bundle_id === bId);
+
+        const possibleCount = reqDefs.length === 0 ? 0 : Math.min(
+            ...reqDefs.map(req => Math.floor((prods[req.product_id] || 0) / req.quantity))
+        );
+
+        finalOrderTotal += possibleCount * (dbBundles.get(bId) ?? 0);
+
+        // Charge base price for any items leftover after filling the max possible bundles
+        Object.entries(prods).forEach(([pId, subQty]) => {
+            const defItem = reqDefs.find(r => r.product_id === pId);
+            const qtyUsed = possibleCount * (defItem?.quantity || 0);
+            const extra = (subQty as number) - qtyUsed;
+            if (extra > 0) {
+                finalOrderTotal += extra * (dbProducts.get(pId) || 0);
             }
-        }
+        });
+    });
 
-        const bPrice = dbBundles.get(bId) ?? 0;
-        total += bundleCount * bPrice;
-
-        for (const [pId, qty] of Object.entries(bProducts)) {
-            const reqItem = bItems.find((b: any) => b.product_id === pId);
-            const reqQty = reqItem ? reqItem.quantity : 0;
-            const remainingQty = qty - (bundleCount * reqQty);
-            if (remainingQty > 0) {
-                total += remainingQty * (dbProducts.get(pId) || 0);
-            }
-        }
-    }
-
-    return total;
+    return finalOrderTotal;
 }
