@@ -136,49 +136,14 @@ export async function placeOrder(formData: any) {
     const bundlePrices = new Map((dbBundles || []).map((b: any) => [b.id, b.price_override]));
 
     // 2. Re-calculate Total securely
+    const { calculateOrderTotal } = await import('@/lib/utils/pricing');
+
     let total = 0;
-    const bundleQuantities: Record<string, Record<string, number>> = {};
-
-    for (const item of items) {
-        // Enforce DB price over client provided price. Reject if not found.
-        const dbPrice = productPrices.get(item.productId);
-        if (dbPrice === undefined) {
-            console.error('Invalid product submitted:', item.productId);
-            return { success: false, error: 'Invalid product selected' };
-        }
-        item.price = dbPrice;
-
-        if (item.bundleId) {
-            if (!bundleQuantities[item.bundleId]) bundleQuantities[item.bundleId] = {};
-            bundleQuantities[item.bundleId][item.productId] = (bundleQuantities[item.bundleId][item.productId] || 0) + item.quantity;
-        } else {
-            total += item.price * item.quantity;
-        }
-    }
-
-    for (const [bId, bProducts] of Object.entries(bundleQuantities)) {
-        const bItems = (dbBundleItems || []).filter((b: any) => b.bundle_id === bId);
-        let bundleCount = Infinity;
-        if (bItems.length === 0) {
-            bundleCount = 0;
-        } else {
-            for (const req of bItems) {
-                const subQty = bProducts[req.product_id] || 0;
-                bundleCount = Math.min(bundleCount, Math.floor(subQty / req.quantity));
-            }
-        }
-
-        const bPrice = bundlePrices.get(bId) ?? 0;
-        total += bundleCount * bPrice;
-
-        for (const [pId, qty] of Object.entries(bProducts)) {
-            const reqItem = bItems.find((b: any) => b.product_id === pId);
-            const reqQty = reqItem ? reqItem.quantity : 0;
-            const remainingQty = qty - (bundleCount * reqQty);
-            if (remainingQty > 0) {
-                total += remainingQty * (productPrices.get(pId) || 0);
-            }
-        }
+    try {
+        total = calculateOrderTotal(items, productPrices, bundlePrices, dbBundleItems || []);
+    } catch (err: any) {
+        console.error(err.message);
+        return { success: false, error: 'Invalid product selected' };
     }
 
     let discountTotal = 0;
