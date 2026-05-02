@@ -17,7 +17,8 @@ const OrderSchema = z.object({
         variant: z.string().nullish(), // Accepts string, null, or undefined
         quantity: z.number().min(1),
         price: z.number(),
-        name: z.string()
+        name: z.string(),
+        bundleId: z.string().optional().nullable()
     })),
     saveAddress: z.boolean().optional()
 });
@@ -93,7 +94,8 @@ export async function placeOrder(formData: any) {
             variant: z.string().nullish(),
             quantity: z.number().min(1),
             price: z.number(),
-            name: z.string()
+            name: z.string(),
+            bundleId: z.string().optional().nullable()
         })),
         saveAddress: z.boolean().optional(),
         promoCode: z.string().optional().nullable()
@@ -109,12 +111,86 @@ export async function placeOrder(formData: any) {
     }
 
     const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // 1. Fetch authoritative pricing from the database
+    const productIds = Array.from(new Set(items.map((i: any) => i.productId)));
+    const bundleIds = Array.from(new Set(items.map((i: any) => i.bundleId).filter(Boolean)));
+
+    const { data: dbProducts } = await supabaseAdmin
+        .from('products')
+        .select('id, base_price')
+        .in('id', productIds);
+
+    const { data: dbBundles } = bundleIds.length > 0
+        ? await supabaseAdmin.from('bundles').select('id, price_override').in('id', bundleIds)
+        : { data: [] };
+
+    const { data: dbBundleItems } = bundleIds.length > 0
+        ? await supabaseAdmin.from('bundle_items').select('bundle_id, product_id, quantity').in('bundle_id', bundleIds)
+        : { data: [] };
+
+    const productPrices = new Map((dbProducts || []).map((p: any) => [p.id, p.base_price]));
+    const bundlePrices = new Map((dbBundles || []).map((b: any) => [b.id, b.price_override]));
+
+    // 2. Re-calculate Total securely
+    let total = 0;
+
+    // Process standalone items first and collect bundle items into a list to avoid object reduction loops matching other files
+    const unbundled = items.filter((i: any) => !i.bundleId);
+    const bundled = items.filter((i: any) => !!i.bundleId);
+
+    for (let i = 0; i < unbundled.length; i++) {
+        const productVal = productPrices.get(unbundled[i].productId);
+        if (productVal === undefined) return { success: false, error: 'Invalid product selected' };
+        unbundled[i].price = productVal;
+        total += productVal * unbundled[i].quantity;
+    }
+
+    const bundleIdsSet = Array.from(new Set(bundled.map((i: any) => i.bundleId)));
+
+    try {
+        for (let j = 0; j < bundleIdsSet.length; j++) {
+            const targetBundle = bundleIdsSet[j];
+            const bundleComponents = bundled.filter((i: any) => i.bundleId === targetBundle);
+
+            const sumMap = new Map<string, number>();
+            bundleComponents.forEach((i: any) => {
+                const productVal = productPrices.get(i.productId);
+                if (productVal === undefined) throw new Error('Invalid');
+                i.price = productVal;
+                sumMap.set(i.productId, (sumMap.get(i.productId) || 0) + i.quantity);
+            });
+
+            const requirements = (dbBundleItems || []).filter((b: any) => b.bundle_id === targetBundle);
+
+            let validBundles = Infinity;
+            if (requirements.length === 0) {
+                validBundles = 0;
+            } else {
+                requirements.forEach((req: any) => {
+                    validBundles = Math.min(validBundles, Math.floor((sumMap.get(req.product_id) || 0) / req.quantity));
+                });
+            }
+
+            total += validBundles * (bundlePrices.get(targetBundle) || 0);
+
+            sumMap.forEach((userQty, pId) => {
+                const reqAmount = requirements.find((r: any) => r.product_id === pId)?.quantity || 0;
+                const remaining = userQty - validBundles * reqAmount;
+                if (remaining > 0) {
+                    total += remaining * (productPrices.get(pId) || 0);
+                }
+            });
+        }
+    } catch {
+        return { success: false, error: 'Invalid product selected' };
+    }
+
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
@@ -172,7 +248,8 @@ export async function placeOrder(formData: any) {
                 quantity: item.quantity,
                 price: item.price,
                 name: item.name,
-                variant: item.variant
+                variant: item.variant,
+                bundle_id: item.bundleId || null
             })),
             promo_code_id: promoCodeId,
             discount_total: discountTotal
