@@ -1,19 +1,17 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { verifySession } from '@/lib/auth/session';
+import { verifyAdminAction } from '@/lib/auth/session';
+import crypto from 'crypto';
 
 export async function uploadImage(formData: FormData) {
     try {
         console.log('Server Action: uploadImage started');
 
         // 1. Verify Authentication & Role
-        const session = await verifySession();
-        console.log('Server Action: Session verified, Full Session:', JSON.stringify(session));
-        console.log('Server Action: Session verified, Role:', session.role);
-
-        if (session.role !== 'admin' && session.role !== 'owner') {
-            console.error('Server Action: Unauthorized role:', session.role);
+        const authResult = await verifyAdminAction();
+        if (authResult.error) {
+            console.error('Server Action: Unauthorized upload attempt');
             return { error: 'Unauthorized' };
         }
 
@@ -22,6 +20,15 @@ export async function uploadImage(formData: FormData) {
             console.error('Server Action: No file found in FormData');
             return { error: 'No file provided' };
         }
+
+        // Validate File Extension explicitly
+        const allowedExtensions = ['png', 'jpg', 'jpeg', 'webp'];
+        const fileExt = file.name.split('.').pop()?.toLowerCase();
+        if (!fileExt || !allowedExtensions.includes(fileExt)) {
+             console.error('Server Action: Invalid file extension:', fileExt);
+             return { error: 'Invalid file type. Only PNG, JPG, JPEG, and WEBP are allowed.' };
+        }
+
         console.log(`Server Action: File received - Name: ${file.name}, Size: ${file.size}, Type: ${file.type}`);
 
         const supabaseAdmin = createAdminClient();
@@ -44,8 +51,7 @@ export async function uploadImage(formData: FormData) {
         }
 
         // 3. Prepare File
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const fileName = `${crypto.randomUUID()}_${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
         // 4. Upload using Admin Client (Bypasses RLS)
