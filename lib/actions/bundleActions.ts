@@ -100,7 +100,19 @@ export async function createBundle(formData: any) {
         return { success: false, error: 'Invalid data' };
     }
 
-    const { name, description, type, items, priceOverride } = result.data;
+    let { name, description, type, items, priceOverride } = result.data;
+
+    // Security check: only admins/owners can create admin_fixed bundles or set a priceOverride
+    const isAdminOrOwner = session?.role === 'admin' || session?.role === 'owner';
+
+    if (type === 'admin_fixed' && !isAdminOrOwner) {
+        return { success: false, error: 'Unauthorized: Only admins can create fixed bundles' };
+    }
+
+    if (priceOverride !== undefined && !isAdminOrOwner) {
+        priceOverride = undefined; // Discard user-provided price override if not admin
+    }
+
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 
     const supabaseAdmin = createAdminClient();
