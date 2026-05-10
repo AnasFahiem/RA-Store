@@ -1,14 +1,23 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { verifySession } from '@/lib/auth/session';
+import { getSession } from '@/lib/auth/session';
+import crypto from 'crypto';
+
+const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
 
 export async function uploadImage(formData: FormData) {
     try {
         console.log('Server Action: uploadImage started');
 
         // 1. Verify Authentication & Role
-        const session = await verifySession();
+        const session = await getSession();
+
+        if (!session) {
+            console.error('Server Action: Unauthenticated request');
+            return { error: 'Unauthorized' };
+        }
+
         console.log('Server Action: Session verified, Full Session:', JSON.stringify(session));
         console.log('Server Action: Session verified, Role:', session.role);
 
@@ -44,8 +53,14 @@ export async function uploadImage(formData: FormData) {
         }
 
         // 3. Prepare File
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+        const fileExt = file.name.split('.').pop()?.toLowerCase();
+
+        if (!fileExt || !ALLOWED_EXTENSIONS.includes(fileExt)) {
+            console.error('Server Action: Invalid file extension:', fileExt);
+            return { error: 'Invalid file type. Only PNG, JPG, JPEG, and WEBP are allowed.' };
+        }
+
+        const fileName = `${crypto.randomBytes(16).toString('hex')}_${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
         // 4. Upload using Admin Client (Bypasses RLS)
