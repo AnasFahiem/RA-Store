@@ -1,0 +1,4 @@
+## 2024-05-11 - Missing Authorization Checks on Server Actions
+**Vulnerability:** Found `lib/actions/hero.ts` and `lib/actions/header.ts` server actions that bypassed Row Level Security (RLS) by using `createAdminClient()` directly, but completely lacked role-based authorization checks, allowing unauthenticated users to modify hero/header slides.
+**Learning:** Next.js Server Actions act as public API endpoints. When utilizing service role clients (`createAdminClient`) that bypass RLS, explicit role-based authorization using `getSession()` must be enforced directly inside the server action function to prevent broken access control.
+**Prevention:** Always verify that server actions that change state or query restricted data enforce session validation and role checks (e.g., checking for 'admin' or 'owner') before processing requests.
