@@ -1,0 +1,4 @@
+## 2024-05-12 - [CRITICAL] Broken Access Control in Server Actions using Admin Client
+**Vulnerability:** Next.js Server Actions fetching administrative data (`getPromoCodes`, `getPromoCodeById`, `getDiscountRuleById`) bypassed Row Level Security by utilizing `createAdminClient()` but failed to implement explicit role checks. This allowed unauthenticated or unauthorized users to read sensitive admin-only data.
+**Learning:** Next.js Server Actions are public endpoints by default. When an action uses `createAdminClient()` (which runs with the Supabase service role key, bypassing database RLS), it MUST implement its own application-level authorization checks.
+**Prevention:** Always pair `createAdminClient()` in Next.js Server Actions with a `getSession()` check and explicit validation that the user has the required roles (`admin`, `owner`), prior to performing any database queries.
