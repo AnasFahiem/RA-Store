@@ -101,6 +101,21 @@ export async function createBundle(formData: any) {
     }
 
     const { name, description, type, items, priceOverride } = result.data;
+
+    // Security Enhancement: Ensure user is logged in
+    if (!session?.userId) {
+        return { success: false, error: 'Please login to create bundles' };
+    }
+
+    // Security Enhancement: Restrict admin_fixed bundles to admins/owners
+    const isAdminOrOwner = session?.role === 'admin' || session?.role === 'owner';
+    if (type === 'admin_fixed' && !isAdminOrOwner) {
+        return { success: false, error: 'Unauthorized: Only admins can create fixed bundles' };
+    }
+
+    // Security Enhancement: Prevent price manipulation by discarding price overrides from non-admins
+    const safePriceOverride = isAdminOrOwner ? priceOverride : undefined;
+
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 
     const supabaseAdmin = createAdminClient();
@@ -113,8 +128,8 @@ export async function createBundle(formData: any) {
             slug,
             type,
             image: result.data.image,
-            price_override: priceOverride,
-            created_by: session?.userId || null
+            price_override: safePriceOverride,
+            created_by: session.userId
         })
         .select()
         .single();

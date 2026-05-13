@@ -1,0 +1,4 @@
+## 2025-05-13 - [HIGH] Fix Broken Access Control in Bundle Creation
+**Vulnerability:** The `createBundle` Server Action lacked role authorization checks when saving a bundle. It permitted any user, including unauthenticated users, to create an `admin_fixed` bundle or maliciously pass `priceOverride` on `user_custom` bundles, resulting in an authorization bypass and price manipulation.
+**Learning:** Next.js Server Actions are public API endpoints. Using `createAdminClient` inside an action bypasses Row Level Security (RLS). Thus, explicit authorization checks using `getSession()` must be implemented manually at the beginning of the action.
+**Prevention:** In actions utilizing a service-role Supabase client, always explicitly verify the user's authentication state (`session?.userId`) and role (`session?.role`) before processing any data or invoking database queries. Ensure that sensitive fields like `priceOverride` are conditionally accepted based on user role.
