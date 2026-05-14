@@ -114,7 +114,7 @@ export default function CheckoutPage() {
         // Backend expects 'address', 'city', etc. 
         // If selectedAddressId !== 'new', we inject the values from the selected address into the payload.
 
-        let submitData: any = {
+        const submitData: any = {
             name: formData.get('name'),
             email: formData.get('email'),
             phone: formData.get('phone'),
