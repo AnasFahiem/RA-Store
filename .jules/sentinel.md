@@ -1,0 +1,4 @@
+## 2024-05-16 - [Broken Access Control on Admin Data Retrieval Actions]
+**Vulnerability:** Next.js Server Actions `getPromoCodes` and `getPromoCodeById` in `lib/actions/bundleActions.ts` exposed sensitive administrative data because they lacked explicit role-based authentication checks when using `createAdminClient()`, which bypasses Row Level Security (RLS).
+**Learning:** Using a service-role Supabase client (`createAdminClient`) in public Next.js Server Actions completely bypasses database RLS policies. It's critical to manually enforce access control (e.g., checking `session?.role === 'admin'`) inside every action that retrieves or mutates data using this client.
+**Prevention:** Always verify `session?.role` inside Server Actions that are intended for administrative use before executing database queries with the admin client. Return secure defaults (`[]` or `null`) if unauthorized.
