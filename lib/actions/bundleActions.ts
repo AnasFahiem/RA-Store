@@ -101,6 +101,12 @@ export async function createBundle(formData: any) {
     }
 
     const { name, description, type, items, priceOverride } = result.data;
+
+    // Security Fix: Prevent users from creating admin bundles or setting custom prices
+    const isAdminOrOwner = session?.role === 'admin' || session?.role === 'owner';
+    const safeType = isAdminOrOwner ? type : 'user_custom';
+    const safePriceOverride = isAdminOrOwner ? priceOverride : undefined;
+
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 
     const supabaseAdmin = createAdminClient();
@@ -111,9 +117,9 @@ export async function createBundle(formData: any) {
             name,
             description,
             slug,
-            type,
+            type: safeType,
             image: result.data.image,
-            price_override: priceOverride,
+            price_override: safePriceOverride,
             created_by: session?.userId || null
         })
         .select()
