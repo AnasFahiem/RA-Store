@@ -26,16 +26,7 @@ export async function GET(request: Request) {
                 await createSession(user.id, profile?.role || 'customer');
             }
 
-            const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer
-            const isLocal = origin.includes('localhost');
-            if (isLocal) {
-                // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-                return NextResponse.redirect(`${origin}/auth/login?verified=true`);
-            } else if (forwardedHost) {
-                return NextResponse.redirect(`https://${forwardedHost}/auth/login?verified=true`);
-            } else {
-                return NextResponse.redirect(`${origin}/auth/login?verified=true`);
-            }
+            return NextResponse.redirect(`${origin}/auth/login?verified=true`);
         }
         console.error('Auth Callback Error:', error);
     }
