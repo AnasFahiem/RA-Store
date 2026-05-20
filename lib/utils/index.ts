@@ -6,3 +6,4 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export * from './format';
+export * from './html';
