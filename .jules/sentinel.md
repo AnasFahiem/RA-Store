@@ -1,0 +1,4 @@
+## 2024-05-21 - Open Redirect via X-Forwarded-Host
+**Vulnerability:** The OAuth callback route (`app/auth/callback/route.ts`) was using the user-controllable `x-forwarded-host` HTTP header to determine the base URL for the post-login redirect, creating an Open Redirect vulnerability.
+**Learning:** Depending on the deployment architecture (like when an application is directly exposed or misconfigured load balancers), the `X-Forwarded-Host` header can be forged by an attacker. Relying on this header for constructing redirect URLs allows attackers to redirect authenticated users to malicious domains, potentially stealing tokens or credentials.
+**Prevention:** Never trust client-provided headers for redirection logic. Always use the verified `origin` derived from the current request URL (`new URL(request.url).origin`), or validate the redirect destination against a strict whitelist of allowed domains.
