@@ -1,0 +1,4 @@
+## 2024-05-25 - Broken Access Control in Server Actions
+**Vulnerability:** Next.js Server Actions utilizing the Supabase service-role client (`createAdminClient`) bypassed Row Level Security (RLS) but lacked explicit role-based authorization checks, allowing any user to execute administrative mutations (e.g., adding/deleting hero and header slides).
+**Learning:** Because server actions are public API endpoints and the service-role client bypasses database-level security, they are highly susceptible to broken access control if explicit authentication and role verification are not manually implemented within the action body itself.
+**Prevention:** Always use `getSession()` to explicitly verify the user's role (`session?.role === 'admin'` or `'owner'`) at the very beginning of any Next.js Server Action that performs administrative tasks, especially when using `createAdminClient`.
