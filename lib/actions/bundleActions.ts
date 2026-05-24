@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth/session';
+import { getSession, verifyAdmin } from '@/lib/auth/session';
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -434,6 +434,11 @@ export async function deleteDiscountRule(id: string) {
 // --- Promo Code Actions ---
 
 export async function getPromoCodes() {
+    const adminCheck = await verifyAdmin();
+    if (adminCheck.error) {
+        return [];
+    }
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
@@ -449,6 +454,12 @@ export async function getPromoCodes() {
 
 export async function getPromoCodeById(id: string) {
     noStore();
+
+    const adminCheck = await verifyAdmin();
+    if (adminCheck.error) {
+        return null;
+    }
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
