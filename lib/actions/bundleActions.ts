@@ -100,7 +100,15 @@ export async function createBundle(formData: any) {
         return { success: false, error: 'Invalid data' };
     }
 
-    const { name, description, type, items, priceOverride } = result.data;
+    const { name, description, items } = result.data;
+    let { type, priceOverride } = result.data;
+
+    // Security Fix: Prevent parameter tampering for unprivileged users
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        type = 'user_custom';
+        priceOverride = undefined;
+    }
+
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 
     const supabaseAdmin = createAdminClient();
