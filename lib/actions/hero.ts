@@ -1,7 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getSession } from '@/lib/auth/session';
+import { verifyAdmin } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 export async function getHeroSlides() {
@@ -21,8 +21,7 @@ export async function getHeroSlides() {
 }
 
 export async function addHeroSlide(imageUrl: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
 
@@ -65,8 +64,7 @@ export async function addHeroSlide(imageUrl: string) {
 }
 
 export async function deleteHeroSlide(id: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
 
@@ -87,8 +85,7 @@ export async function deleteHeroSlide(id: string) {
 }
 
 export async function updateHeroSlideOrder(items: { id: string; sort_order: number }[]) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
 
