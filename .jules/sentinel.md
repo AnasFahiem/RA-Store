@@ -1,0 +1,4 @@
+## 2025-05-31 - Centralize Role Verification
+**Vulnerability:** Several sensitive Next.js server actions (e.g., modifying header/hero slides and managing bundles) were relying on local, duplicated logic for determining authorization or omitting it completely. Because these endpoints use `createAdminClient` which bypasses Supabase Row Level Security (RLS), it allowed unauthorized access vulnerabilities if inline logic was skipped or flawed.
+**Learning:** Next.js Server Actions are public API endpoints. When a server action bypasses RLS using a service role, you must have robust and consistent authorization checks directly inside the action.
+**Prevention:** Always extract role verification into a central helper function (`verifyAdmin()` in `lib/auth/session.ts`) to enforce consistent broken access control (BAC) prevention. Ensure all administrative functions check this helper before proceeding.
