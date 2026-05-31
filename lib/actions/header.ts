@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyAdmin } from '@/lib/auth/session';
 import { revalidatePath } from 'next/cache';
 
 export interface HeaderSlide {
@@ -80,6 +81,8 @@ export async function getHeaderSettings() {
 }
 
 export async function addHeaderSlide(content: string, contentAr: string, backgroundColor?: string, textColor?: string) {
+    if (!(await verifyAdmin())) return { success: false, error: 'Unauthorized' };
+
     const supabaseAdmin = createAdminClient();
 
     // Get max sort order
@@ -116,6 +119,8 @@ export async function addHeaderSlide(content: string, contentAr: string, backgro
 }
 
 export async function deleteHeaderSlide(id: string) {
+    if (!(await verifyAdmin())) return { success: false, error: 'Unauthorized' };
+
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
         .from('header_slides')
@@ -133,6 +138,8 @@ export async function deleteHeaderSlide(id: string) {
 }
 
 export async function updateHeaderSettings(settings: Partial<HeaderSettings>) {
+    if (!(await verifyAdmin())) return { success: false, error: 'Unauthorized' };
+
     const supabaseAdmin = createAdminClient();
 
     // Upsert settings (id always 1)
