@@ -28,14 +28,19 @@ export async function GET(request: Request) {
 
             const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer
             const isLocal = origin.includes('localhost');
-            if (isLocal) {
-                // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-                return NextResponse.redirect(`${origin}/auth/login?verified=true`);
-            } else if (forwardedHost) {
-                return NextResponse.redirect(`https://${forwardedHost}/auth/login?verified=true`);
-            } else {
-                return NextResponse.redirect(`${origin}/auth/login?verified=true`);
+
+            let redirectHost = origin;
+            if (!isLocal && forwardedHost) {
+                const allowedHost = process.env.NEXT_PUBLIC_SITE_URL
+                    ? new URL(process.env.NEXT_PUBLIC_SITE_URL).host
+                    : null;
+
+                if (allowedHost && forwardedHost === allowedHost) {
+                    redirectHost = `https://${forwardedHost}`;
+                }
             }
+
+            return NextResponse.redirect(`${redirectHost}/auth/login?verified=true`);
         }
         console.error('Auth Callback Error:', error);
     }
