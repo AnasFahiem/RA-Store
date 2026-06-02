@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url);
     const code = searchParams.get('code');
     // if "next" is in param, use it as the redirect URL
-    const next = searchParams.get('next') ?? '/';
+    // const next = searchParams.get('next') ?? '/'; // unused currently
 
     if (code) {
         const supabase = await createClient();
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
                     } else {
                         console.warn(`[Security] Rejected X-Forwarded-Host '${forwardedHost}', expected '${expectedUrl.host}'`);
                     }
-                } catch (e) {
+                } catch {
                     // Invalid URL in NEXT_PUBLIC_SITE_URL, safeHost remains null
                 }
             }
