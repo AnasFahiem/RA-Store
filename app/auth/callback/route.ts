@@ -28,11 +28,27 @@ export async function GET(request: Request) {
 
             const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer
             const isLocal = origin.includes('localhost');
+
+            // Validate X-Forwarded-Host to prevent Open Redirect
+            let safeHost = null;
+            if (forwardedHost && process.env.NEXT_PUBLIC_SITE_URL) {
+                try {
+                    const expectedUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL);
+                    if (forwardedHost === expectedUrl.host) {
+                        safeHost = forwardedHost;
+                    } else {
+                        console.warn(`[Security] Rejected X-Forwarded-Host '${forwardedHost}', expected '${expectedUrl.host}'`);
+                    }
+                } catch (e) {
+                    // Invalid URL in NEXT_PUBLIC_SITE_URL, safeHost remains null
+                }
+            }
+
             if (isLocal) {
                 // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
                 return NextResponse.redirect(`${origin}/auth/login?verified=true`);
-            } else if (forwardedHost) {
-                return NextResponse.redirect(`https://${forwardedHost}/auth/login?verified=true`);
+            } else if (safeHost) {
+                return NextResponse.redirect(`https://${safeHost}/auth/login?verified=true`);
             } else {
                 return NextResponse.redirect(`${origin}/auth/login?verified=true`);
             }

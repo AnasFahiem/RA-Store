@@ -1,0 +1,4 @@
+## 2024-05-18 - Fix Open Redirect in Auth Callback
+**Vulnerability:** The `app/auth/callback/route.ts` used an unvalidated `X-Forwarded-Host` header to determine the redirect URL after authentication. Since headers can be easily spoofed, this introduced an Open Redirect vulnerability, allowing an attacker to steal auth tokens by redirecting the user to a malicious site.
+**Learning:** Next.js redirect code should never implicitly trust the `X-Forwarded-Host` header without verifying it against a known good value, especially since production environments often rely on this header to route traffic through load balancers correctly.
+**Prevention:** To prevent this, validate the `X-Forwarded-Host` against `process.env.NEXT_PUBLIC_SITE_URL` to ensure it only redirects to the trusted domain. If it fails validation, fall back to the `origin` safely.
