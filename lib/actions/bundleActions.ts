@@ -100,7 +100,15 @@ export async function createBundle(formData: any) {
         return { success: false, error: 'Invalid data' };
     }
 
-    const { name, description, type, items, priceOverride } = result.data;
+    const { name, description, items } = result.data;
+    let { type, priceOverride } = result.data;
+
+    // Sentinel Security: Prevent price manipulation and unauthorized admin bundle creation
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        priceOverride = undefined;
+        type = 'user_custom';
+    }
+
     const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
 
     const supabaseAdmin = createAdminClient();
@@ -291,7 +299,7 @@ export async function getBundleById(id: string) {
 export async function addBundleToCart(bundleId: string) {
     console.log('[addBundleToCart] Starting for Bundle:', bundleId);
     const session = await getSession();
-    let userId = session?.userId;
+    const userId = session?.userId;
     console.log('[addBundleToCart] User:', userId);
 
     const supabaseAdmin = createAdminClient();
