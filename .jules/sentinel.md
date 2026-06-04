@@ -1,0 +1,4 @@
+## 2026-06-04 - [JWT Forgery via Undefined Casting]
+**Vulnerability:** A critical vulnerability existed in `lib/auth/session.ts` where a missing `JWT_SECRET` environment variable caused `new TextEncoder().encode(process.env.JWT_SECRET)` to silently cast the `undefined` value to the string 'undefined', generating a valid 9-byte array key. This would allow an attacker to forge JWTs by signing them with the word 'undefined'.
+**Learning:** `new TextEncoder().encode()` does not throw an error on `undefined`, but rather treats it as the string 'undefined'. This means missing environment variables for cryptographic keys can lead to predictable, weak keys instead of application crashes.
+**Prevention:** Always explicitly check for the existence of critical environment variables (like cryptographic secrets) before passing them to encoding functions or APIs, and throw an explicit Error if they are missing to ensure the application fails securely.
