@@ -1,0 +1,4 @@
+## 2024-03-24 - JWT Forgery from Missing Secret
+**Vulnerability:** The application was passing `process.env.JWT_SECRET` directly to `new TextEncoder().encode()` without verifying that it was set. If the secret was missing, `process.env.JWT_SECRET` was evaluated as `undefined`, and `new TextEncoder().encode(undefined)` returned a valid 9-byte array corresponding to the string "undefined". This meant an attacker could forge valid JWTs using "undefined" as the secret, bypassing authentication entirely.
+**Learning:** `TextEncoder().encode()` silently converts undefined inputs to the string "undefined" rather than throwing an error, leading to a silent failure mode where a predictable default key is used.
+**Prevention:** Always validate that critical environment variables (like signing secrets) are explicitly set before passing them to encoding or cryptographic functions. Throw an error on startup if they are missing to prevent fail-open scenarios.
