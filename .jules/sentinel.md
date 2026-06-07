@@ -1,0 +1,4 @@
+## 2024-06-07 - Add JWT_SECRET Verification
+**Vulnerability:** The application was vulnerable to JWT forgery. In `lib/auth/session.ts`, `new TextEncoder().encode(process.env.JWT_SECRET)` was called without verifying the presence of `process.env.JWT_SECRET`. If `JWT_SECRET` is missing (e.g. `undefined`), `new TextEncoder().encode(undefined)` returns a valid 9-byte array corresponding to the string 'undefined', effectively using `"undefined"` as a weak, known secret.
+**Learning:** `new TextEncoder().encode(undefined)` does not throw an error or create an empty key; it creates a key with the literal string `'undefined'`. When critical environment variables are absent, unexpected types can be stringified with unsafe results.
+**Prevention:** Always explicitly validate the presence of critical environment variables (like secrets) before passing them to configuration, cryptographic, or encoding functions. Fail fast and loudly if they are missing.
