@@ -3,6 +3,10 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+if (!process.env.JWT_SECRET) {
+    throw new Error('CRITICAL VULNERABILITY: JWT_SECRET environment variable is missing. Halting application startup to prevent JWT forgery.');
+}
+
 const key = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const cookie = {
