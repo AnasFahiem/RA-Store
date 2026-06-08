@@ -1,0 +1,4 @@
+## 2024-05-15 - Missing Role Checks in Service-Role Client Actions
+**Vulnerability:** IDOR/Broken Access Control. Several Next.js Server Actions modifying admin data (header, hero slides) were missing role-based authorization checks while utilizing `createAdminClient()`. As `createAdminClient` bypasses Row Level Security (RLS) via the Supabase Service Role key, any unauthenticated or unauthorized user invoking these public API endpoints could freely modify these elements.
+**Learning:** `createAdminClient()` functions independently of RLS by design. In a Next.js Server Action context, this is extremely dangerous if the action does not explicitly assert and authorize the calling user's identity via session checks prior to execution.
+**Prevention:** Always verify authorization (e.g., via `verifyAdmin()`) at the start of any Server Action modifying data before utilizing a privileged/service-role client.
