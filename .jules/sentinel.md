@@ -1,0 +1,5 @@
+
+## 2025-02-14 - Fix JWT Forgery and Bundle Privilege Escalation
+**Vulnerability:** The application was vulnerable to JWT forgery due to a missing `process.env.JWT_SECRET` check which resulted in `TextEncoder().encode(undefined)` returning an array representing the string 'undefined'. Additionally, the `createBundle` action lacked role verification, allowing non-admin users to forge `admin_fixed` bundles and arbitrarily override bundle prices by intercepting the request.
+**Learning:** Hard failure must be explicitly thrown on missing required credentials to prevent fallback or coercion vulnerabilities in sensitive authentication utilities. Further, type-validation schemas (e.g. Zod) do not verify authorization, requiring explicit role-based logic inside public-facing server actions to filter privileged fields.
+**Prevention:** Add startup checks for all required secrets. Ensure role validation is manually implemented within server actions for sensitive operations, specifically explicitly discarding or overriding privileged parameters like `priceOverride` and `type` for unprivileged users.
