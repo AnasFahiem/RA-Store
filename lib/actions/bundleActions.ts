@@ -94,6 +94,11 @@ export async function getAdminBundles() {
 
 export async function createBundle(formData: any) {
     const session = await getSession();
+    // 🛡️ Sentinel: Enforce strict role-based authorization to prevent broken access control and price manipulation.
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
     const result = BundleSchema.safeParse(formData);
 
     if (!result.success) {
