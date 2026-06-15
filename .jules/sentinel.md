@@ -1,0 +1,4 @@
+## 2026-06-15 - Broken Access Control / Price Manipulation in Bundle Creation
+**Vulnerability:** The `createBundle` server action accepted `priceOverride` directly from client input without enforcing role-based authorization checks (`admin` or `owner`), allowing unprivileged users to create custom bundles with arbitrary low prices.
+**Learning:** Zod schemas only validate the shape/type of data (e.g., ensuring it's a number), not the authorization to set specific fields. Mixed-role endpoints that accept privileged parameters alongside public ones are inherently risky.
+**Prevention:** Explicitly filter out or reject privileged fields (like `priceOverride`) from client input inside the server action by checking `session?.role`. Enforce a strict boundary between fields a user can control and fields only admins can control.
