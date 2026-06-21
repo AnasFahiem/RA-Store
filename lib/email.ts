@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { formatCurrency } from './utils/format';
+import { escapeHtml } from './utils/html';
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -52,7 +53,7 @@ export async function sendOrderEmail({ order, items, adminEmails }: { order: any
 
     const itemsHtml = items.map(i => `
     <tr style="border-bottom: 1px solid #333;">
-        <td style="padding: 12px; color: #e5e5e5;">${i.name} <span style="color: #888;">${i.variant ? `(${i.variant})` : ''}</span></td>
+        <td style="padding: 12px; color: #e5e5e5;">${escapeHtml(i.name)} <span style="color: #888;">${i.variant ? `(${escapeHtml(i.variant)})` : ''}</span></td>
         <td style="padding: 12px; color: #e5e5e5; text-align: center;">${i.quantity}</td>
         <td style="padding: 12px; color: #e5e5e5; text-align: right;">${formatCurrency(i.price)}</td>
     </tr>
@@ -86,10 +87,10 @@ export async function sendOrderEmail({ order, items, adminEmails }: { order: any
             <p style="color: #ddd; line-height: 1.6;">${message}</p>
 
             <div class="details">
-                <p><strong>Customer:</strong> ${customerName}</p>
-                <p><strong>Email:</strong> ${customerEmail}</p>
-                <p><strong>Phone:</strong> ${customerPhone}</p>
-                <p><strong>Address:</strong> ${addressString}</p>
+                <p><strong>Customer:</strong> ${escapeHtml(customerName)}</p>
+                <p><strong>Email:</strong> ${escapeHtml(customerEmail)}</p>
+                <p><strong>Phone:</strong> ${escapeHtml(customerPhone)}</p>
+                <p><strong>Address:</strong> ${escapeHtml(addressString)}</p>
             </div>
 
             <table border="0" cellpadding="0" cellspacing="0">
@@ -124,7 +125,7 @@ export async function sendOrderEmail({ order, items, adminEmails }: { order: any
             from: `"RA Store" <${process.env.SMTP_USER}>`,
             to: recipients, // Nodemailer supports array of strings
             subject: `[New Order] #${order.id.slice(0, 8)} from ${customerName}`,
-            html: emailTemplate('New Order Received', `A new order has been placed by <strong>${customerName}</strong>.`),
+            html: emailTemplate('New Order Received', `A new order has been placed by <strong>${escapeHtml(customerName)}</strong>.`),
         });
         console.log(`Admin email sent to ${recipients.join(', ')}`);
     } catch (e) {
@@ -138,7 +139,7 @@ export async function sendOrderEmail({ order, items, adminEmails }: { order: any
                 from: `"RA Store" <${process.env.SMTP_USER}>`,
                 to: customerEmail,
                 subject: `Order Confirmation #${order.id.slice(0, 8)} - RA Store`,
-                html: emailTemplate('Thank You!', `Hi ${customerName},<br>We've received your order and are finding the best gear for you.`),
+                html: emailTemplate('Thank You!', `Hi ${escapeHtml(customerName)},<br>We've received your order and are finding the best gear for you.`),
             });
             console.log(`Customer email sent to ${customerEmail}`);
         } catch (e) {
@@ -152,6 +153,8 @@ export async function sendStatusUpdateEmail({ order, newStatus }: { order: any; 
     const customerName = order.shipping_address?.name || order.customer_name || 'Guest';
     const customerEmail = order.shipping_address?.email || order.customer_email || 'No Email';
 
+    const safeCustomerName = escapeHtml(customerName);
+
     // Determine content based on status
     let title = 'Order Update';
     let message = '';
@@ -159,23 +162,23 @@ export async function sendStatusUpdateEmail({ order, newStatus }: { order: any; 
     switch (newStatus.toLowerCase()) {
         case 'processing':
             title = 'Order Processing';
-            message = `Hi ${customerName},<br>Your order is now being processed. We are getting your gear ready!`;
+            message = `Hi ${safeCustomerName},<br>Your order is now being processed. We are getting your gear ready!`;
             break;
         case 'shipped':
             title = 'Order Shipped';
-            message = `Hi ${customerName},<br>Great news! Your order has been shipped and is on its way.`;
+            message = `Hi ${safeCustomerName},<br>Great news! Your order has been shipped and is on its way.`;
             break;
         case 'delivered':
             title = 'Order Delivered';
-            message = `Hi ${customerName},<br>Your order has been delivered. We hope you enjoy your purchase!`;
+            message = `Hi ${safeCustomerName},<br>Your order has been delivered. We hope you enjoy your purchase!`;
             break;
         case 'cancelled':
             title = 'Order Cancelled';
-            message = `Hi ${customerName},<br>Your order has been cancelled. If you have any questions, please contact support.`;
+            message = `Hi ${safeCustomerName},<br>Your order has been cancelled. If you have any questions, please contact support.`;
             break;
         default:
             title = 'Order Status Update';
-            message = `Hi ${customerName},<br>Your order status has been updated to: <strong>${newStatus}</strong>.`;
+            message = `Hi ${safeCustomerName},<br>Your order status has been updated to: <strong>${escapeHtml(newStatus)}</strong>.`;
     }
 
     const emailTemplate = (title: string, message: string) => `
