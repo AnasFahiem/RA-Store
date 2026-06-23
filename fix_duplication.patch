@@ -1,0 +1,14 @@
+--- lib/auth/session.ts
++++ lib/auth/session.ts
+@@ -52,3 +52,11 @@
+
+     return { userId: session.userId as string, role: session.role as string };
+ }
++
++export async function requireAdminOrOwner() {
++    const session = await getSession();
++    if (session?.role !== 'admin' && session?.role !== 'owner') {
++        return { error: 'Unauthorized' };
++    }
++    return null;
++}
