@@ -94,6 +94,10 @@ export async function getAdminBundles() {
 
 export async function createBundle(formData: any) {
     const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return { success: false, error: 'Unauthorized' };
+    }
+
     const result = BundleSchema.safeParse(formData);
 
     if (!result.success) {
