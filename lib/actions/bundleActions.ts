@@ -291,7 +291,7 @@ export async function getBundleById(id: string) {
 export async function addBundleToCart(bundleId: string) {
     console.log('[addBundleToCart] Starting for Bundle:', bundleId);
     const session = await getSession();
-    let userId = session?.userId;
+    const userId = session?.userId;
     console.log('[addBundleToCart] User:', userId);
 
     const supabaseAdmin = createAdminClient();
@@ -434,6 +434,11 @@ export async function deleteDiscountRule(id: string) {
 // --- Promo Code Actions ---
 
 export async function getPromoCodes() {
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return []; // Return empty array to unauthorized users
+    }
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
@@ -449,6 +454,11 @@ export async function getPromoCodes() {
 
 export async function getPromoCodeById(id: string) {
     noStore();
+    const session = await getSession();
+    if (session?.role !== 'admin' && session?.role !== 'owner') {
+        return null; // Return null to unauthorized users
+    }
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
