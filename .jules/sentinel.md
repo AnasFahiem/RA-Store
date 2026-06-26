@@ -1,0 +1,4 @@
+## 2024-10-24 - Missing Authorization on Admin Endpoints
+**Vulnerability:** Several sensitive functions in `lib/actions/bundleActions.ts` (`createBundle`, `getPromoCodes`, and `getPromoCodeById`) were accessible without authentication or role verification, allowing any user (or unauthenticated visitor) to create bundles and view sensitive promo code details (which should be admin-only data).
+**Learning:** Functions that utilize `createAdminClient()` bypass Row Level Security (RLS). Relying solely on RLS policies or omitting explicit role checks in Next.js Server Actions when using the service role key creates Broken Access Control vulnerabilities.
+**Prevention:** Always verify the session and user role explicitly (e.g., `session?.role !== 'admin' && session?.role !== 'owner'`) inside Next.js Server Actions before returning sensitive data or allowing database modifications, especially when using `createAdminClient()`.
