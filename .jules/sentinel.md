@@ -1,0 +1,4 @@
+## 2024-05-18 - Missing Authorization on Admin Bundle/Promo Actions
+**Vulnerability:** Several Server Actions (`createBundle`, `getPromoCodes`, `getPromoCodeById`) in `lib/actions/bundleActions.ts` bypassed RLS by using `createAdminClient()` but did not verify the user's role, allowing unauthenticated or non-admin users to view all promo codes or create bundles.
+**Learning:** Using the service role client (`createAdminClient()`) bypasses Row Level Security. Any public endpoint or Server Action using it MUST explicitly enforce its own role-based authorization checks before processing the request.
+**Prevention:** Always use `verifyAdmin()` or explicitly check `session?.role === 'admin' || session?.role === 'owner'` at the very beginning of any Server Action that utilizes `createAdminClient()` for sensitive operations.
