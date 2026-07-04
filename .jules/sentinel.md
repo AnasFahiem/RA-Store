@@ -1,0 +1,4 @@
+## 2024-07-04 - Fix Authorization Bypass in Bundle Actions
+**Vulnerability:** Found missing authorization checks in server actions (`createBundle`, `getPromoCodes`, and `getPromoCodeById` in `lib/actions/bundleActions.ts`) that utilize the `createAdminClient()` service role client. This bypasses RLS and allows unprivileged users to access or modify data.
+**Learning:** Next.js Server Actions are public endpoints. Using a service-role Supabase client (`createAdminClient`) inside them bypasses Row Level Security (RLS). We must explicitly enforce role-based authorization directly in these functions before processing any data to prevent parameter tampering and privilege escalation.
+**Prevention:** Always verify the user's role (e.g., via `verifyAdmin()`) at the very beginning of any Server Action that mutates or accesses privileged data, especially when using `createAdminClient()`. Avoid inline logic duplication by extracting authorization checks into shared helpers.
