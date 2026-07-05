@@ -6,21 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { getSession } from '@/lib/auth/session';
 
-const OrderSchema = z.object({
-    name: z.string().min(2),
-    email: z.string().email(),
-    phone: z.string().min(10),
-    address: z.string().min(5),
-    city: z.string().min(2),
-    items: z.array(z.object({
-        productId: z.string(),
-        variant: z.string().nullish(), // Accepts string, null, or undefined
-        quantity: z.number().min(1),
-        price: z.number(),
-        name: z.string()
-    })),
-    saveAddress: z.boolean().optional()
-});
+
 
 export async function getSavedAddresses() {
     const session = await getSession();
@@ -89,12 +75,13 @@ export async function placeOrder(formData: any) {
         address: z.string().min(5),
         city: z.string().min(2),
         items: z.array(z.object({
-            productId: z.string(),
-            variant: z.string().nullish(),
-            quantity: z.number().min(1),
-            price: z.number(),
-            name: z.string()
-        })),
+        productId: z.string(),
+        variant: z.string().nullish(),
+        quantity: z.number().min(1),
+        price: z.number(),
+        name: z.string(),
+        bundleId: z.string().optional()
+    })),
         saveAddress: z.boolean().optional(),
         promoCode: z.string().optional().nullable()
     });
@@ -108,13 +95,110 @@ export async function placeOrder(formData: any) {
         return { success: false, error: 'Invalid form data: ' + result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ') };
     }
 
-    const { name, email, phone, address, city, items, saveAddress, promoCode } = result.data;
-    let total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    let discountTotal = 0;
-    let promoCodeId = null;
+    const { name, email, phone, address, city, items, promoCode } = result.data;
 
     const session = await getSession();
     const supabaseAdmin = createAdminClient();
+
+    // Re-calculate the authoritative price from DB to prevent IDOR/price manipulation
+    let total = 0;
+    const finalItems = [];
+
+    // Group items by bundleId to process bundle logic
+    const bundleGroups = items.reduce((acc: any, item: any) => {
+        if (item.bundleId) {
+            if (!acc[item.bundleId]) acc[item.bundleId] = [];
+            acc[item.bundleId].push(item);
+        } else {
+            if (!acc['unbundled']) acc['unbundled'] = [];
+            acc['unbundled'].push(item);
+        }
+        return acc;
+    }, {});
+
+    for (const bundleId of Object.keys(bundleGroups)) {
+        if (bundleId === 'unbundled') {
+            for (const item of bundleGroups[bundleId]) {
+                const { data: dbProduct } = await supabaseAdmin
+                    .from('products')
+                    .select('base_price')
+                    .eq('id', item.productId)
+                    .single();
+
+                const authoritativePrice = dbProduct?.base_price || 0;
+                total += authoritativePrice * item.quantity;
+                finalItems.push({ ...item, price: authoritativePrice });
+            }
+        } else {
+            const groupItems = bundleGroups[bundleId];
+            // Fetch bundle definition and bundle items
+            const { data: bundle } = await supabaseAdmin
+                .from('bundles')
+                .select('price_override, bundle_items(product_id, quantity)')
+                .eq('id', bundleId)
+                .single();
+
+            if (!bundle) continue;
+
+            // Calculate how many times the bundle is satisfied
+            // We need to aggregate quantities of identical products in the submitted items
+            const submittedQtyByProduct = groupItems.reduce((acc: any, item: any) => {
+                acc[item.productId] = (acc[item.productId] || 0) + item.quantity;
+                return acc;
+            }, {});
+
+            // Determine max valid bundles formed
+            let bundleCount = Number.MAX_SAFE_INTEGER;
+            for (const bItem of bundle.bundle_items || []) {
+                const subQty = submittedQtyByProduct[bItem.product_id] || 0;
+                const possible = Math.floor(subQty / bItem.quantity);
+                if (possible < bundleCount) bundleCount = possible;
+            }
+            if (bundleCount === Number.MAX_SAFE_INTEGER) bundleCount = 0;
+
+            let bundleTotal = 0;
+            // Calculate base price for individual items if there's no override
+            for (const item of groupItems) {
+                const { data: dbProduct } = await supabaseAdmin
+                    .from('products')
+                    .select('base_price')
+                    .eq('id', item.productId)
+                    .single();
+                const basePrice = dbProduct?.base_price || 0;
+
+                // Keep track for DB storage
+                finalItems.push({ ...item, price: basePrice });
+                bundleTotal += basePrice * item.quantity;
+            }
+
+            // Apply bundle override pricing if applicable
+            if (bundle.price_override !== null && bundle.price_override !== undefined && bundleCount > 0) {
+                 // The bundle items satisfy bundleCount full bundles.
+                 // We add the bundle overridden price for the full bundles:
+                 const overriddenTotalForBundles = bundle.price_override * bundleCount;
+
+
+                 // Simplified: Since we have the total of base prices for all items in this group,
+                 // and we know how many full bundles we have, we subtract the base price of the items consumed by the bundles,
+                 // and add the overridden bundle price.
+                 let consumedBasePriceTotal = 0;
+                 for (const bItem of bundle.bundle_items || []) {
+                      const { data: dbProduct } = await supabaseAdmin
+                          .from('products')
+                          .select('base_price')
+                          .eq('id', bItem.product_id)
+                          .single();
+                      consumedBasePriceTotal += (dbProduct?.base_price || 0) * bItem.quantity * bundleCount;
+                 }
+                 total += bundleTotal - consumedBasePriceTotal + overriddenTotalForBundles;
+            } else {
+                 total += bundleTotal;
+            }
+        }
+    }
+
+    let discountTotal = 0;
+    let promoCodeId = null;
 
     // Validate and Apply Promo Code
     if (promoCode) {
@@ -167,12 +251,13 @@ export async function placeOrder(formData: any) {
                 street: address,
                 city
             },
-            items: items.map((item: any) => ({
+            items: finalItems.map((item: any) => ({
                 product_id: item.productId,
                 quantity: item.quantity,
                 price: item.price,
                 name: item.name,
-                variant: item.variant
+                variant: item.variant,
+                bundle_id: item.bundleId || null
             })),
             promo_code_id: promoCodeId,
             discount_total: discountTotal
@@ -207,7 +292,7 @@ export async function placeOrder(formData: any) {
 
         const adminEmails = admins?.map(a => a.email).filter(Boolean) as string[] || [];
 
-        await sendOrderEmail({ order, items, adminEmails });
+        await sendOrderEmail({ order, items: finalItems, adminEmails });
     } catch (e) {
         console.error('Email failed:', e);
     }
