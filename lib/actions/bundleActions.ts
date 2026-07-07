@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth/session';
+import { getSession, verifyAdmin } from '@/lib/auth/session';
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -93,6 +93,9 @@ export async function getAdminBundles() {
 }
 
 export async function createBundle(formData: any) {
+    const authError = await verifyAdmin();
+    if (authError) return { success: false, error: authError.error };
+
     const session = await getSession();
     const result = BundleSchema.safeParse(formData);
 
@@ -434,6 +437,9 @@ export async function deleteDiscountRule(id: string) {
 // --- Promo Code Actions ---
 
 export async function getPromoCodes() {
+    const authError = await verifyAdmin();
+    if (authError) return [];
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
@@ -449,6 +455,9 @@ export async function getPromoCodes() {
 
 export async function getPromoCodeById(id: string) {
     noStore();
+    const authError = await verifyAdmin();
+    if (authError) return null;
+
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
