@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { verifyAdmin } from '@/lib/auth/session';
 
 export interface HeaderSlide {
     id: string;
@@ -80,6 +81,10 @@ export async function getHeaderSettings() {
 }
 
 export async function addHeaderSlide(content: string, contentAr: string, backgroundColor?: string, textColor?: string) {
+    // Security: Require admin/owner role because createAdminClient bypasses RLS
+    const authError = await verifyAdmin();
+    if (authError) return authError;
+
     const supabaseAdmin = createAdminClient();
 
     // Get max sort order
@@ -116,6 +121,10 @@ export async function addHeaderSlide(content: string, contentAr: string, backgro
 }
 
 export async function deleteHeaderSlide(id: string) {
+    // Security: Require admin/owner role because createAdminClient bypasses RLS
+    const authError = await verifyAdmin();
+    if (authError) return authError;
+
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
         .from('header_slides')
@@ -133,6 +142,10 @@ export async function deleteHeaderSlide(id: string) {
 }
 
 export async function updateHeaderSettings(settings: Partial<HeaderSettings>) {
+    // Security: Require admin/owner role because createAdminClient bypasses RLS
+    const authError = await verifyAdmin();
+    if (authError) return authError;
+
     const supabaseAdmin = createAdminClient();
 
     // Upsert settings (id always 1)
