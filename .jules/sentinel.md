@@ -1,0 +1,4 @@
+## 2026-07-09 - Missing Authorization on Admin UI Endpoints
+**Vulnerability:** Several Server Actions that modify frontend UI components (Hero Slides and Header Slides) lacked authorization checks while using the `createAdminClient()` (service role). This allowed unauthenticated public users to maliciously alter or delete hero banners and header settings via IDOR/direct action invocation.
+**Learning:** When using `createAdminClient()` inside Next.js Server Actions, Next.js exposes these actions as public API endpoints. Using the service role bypasses RLS, so explicit role checks (`getSession` + role verification) are strictly required.
+**Prevention:** Always verify `session?.userId` and `session?.role` (`admin` or `owner`) at the very beginning of any state-mutating Server Action that uses `createAdminClient()`.
