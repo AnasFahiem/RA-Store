@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth/session';
+import { verifyAdmin } from '@/lib/auth/session';
 
 export interface HeaderSlide {
     id: string;
@@ -82,8 +82,8 @@ export async function getHeaderSettings() {
 
 export async function addHeaderSlide(content: string, contentAr: string, backgroundColor?: string, textColor?: string) {
     // Security: Require admin/owner role because createAdminClient bypasses RLS
-    const session = await getSession();
-    if (!session?.userId || (session.role !== 'admin' && session.role !== 'owner')) return { error: 'Unauthorized' };
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
 
@@ -122,8 +122,8 @@ export async function addHeaderSlide(content: string, contentAr: string, backgro
 
 export async function deleteHeaderSlide(id: string) {
     // Security: Require admin/owner role because createAdminClient bypasses RLS
-    const session = await getSession();
-    if (!session?.userId || (session.role !== 'admin' && session.role !== 'owner')) return { error: 'Unauthorized' };
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
@@ -143,8 +143,8 @@ export async function deleteHeaderSlide(id: string) {
 
 export async function updateHeaderSettings(settings: Partial<HeaderSettings>) {
     // Security: Require admin/owner role because createAdminClient bypasses RLS
-    const session = await getSession();
-    if (!session?.userId || (session.role !== 'admin' && session.role !== 'owner')) return { error: 'Unauthorized' };
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
 

@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth/session';
+import { verifyAdmin } from '@/lib/auth/session';
 
 export async function getHeroSlides() {
     const supabaseAdmin = createAdminClient();
@@ -22,8 +22,8 @@ export async function getHeroSlides() {
 
 export async function addHeroSlide(imageUrl: string) {
     // Security: Require admin/owner role because createAdminClient bypasses RLS
-    const session = await getSession();
-    if (!session?.userId || (session.role !== 'admin' && session.role !== 'owner')) return { error: 'Unauthorized' };
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     // Get current max order to append to end
     const supabaseAdmin = createAdminClient();
@@ -65,8 +65,8 @@ export async function addHeroSlide(imageUrl: string) {
 
 export async function deleteHeroSlide(id: string) {
     // Security: Require admin/owner role because createAdminClient bypasses RLS
-    const session = await getSession();
-    if (!session?.userId || (session.role !== 'admin' && session.role !== 'owner')) return { error: 'Unauthorized' };
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
@@ -86,8 +86,8 @@ export async function deleteHeroSlide(id: string) {
 
 export async function updateHeroSlideOrder(items: { id: string; sort_order: number }[]) {
     // Security: Require admin/owner role because createAdminClient bypasses RLS
-    const session = await getSession();
-    if (!session?.userId || (session.role !== 'admin' && session.role !== 'owner')) return { error: 'Unauthorized' };
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     // Supabase doesn't support bulk update with different values easily in one query without RPC
     // So we'll loop for now, or use a case statement if performance is critical (unlikely for < 10 slides)
