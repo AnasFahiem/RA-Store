@@ -3,7 +3,12 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-const key = new TextEncoder().encode(process.env.JWT_SECRET);
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) {
+    throw new Error('JWT_SECRET environment variable is not set');
+}
+
+const key = new TextEncoder().encode(jwtSecret);
 
 const cookie = {
     name: 'session',
