@@ -20,7 +20,7 @@ export function DeletePromoButton({ promoId }: { promoId: string }) {
         if (result.success) {
             router.refresh();
         } else {
-            alert(result.error || 'Failed to delete');
+            alert(('error' in result ? result.error : null) || 'Failed to delete');
             setIsDeleting(false);
         }
     };

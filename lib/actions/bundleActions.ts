@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth/session';
+import { getSession, verifyAdmin } from '@/lib/auth/session';
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -92,8 +92,10 @@ export async function getAdminBundles() {
     return data || [];
 }
 
-export async function createBundle(formData: any) {
-    const session = await getSession();
+export async function createBundle(formData: unknown) {
+    const authError = await verifyAdmin();
+    if (authError) return authError;
+    const session = await getSession(); // Keep for user ID
     const result = BundleSchema.safeParse(formData);
 
     if (!result.success) {
@@ -125,7 +127,7 @@ export async function createBundle(formData: any) {
     }
 
     if (items.length > 0) {
-        const bundleItems = items.map((item: any) => ({
+        const bundleItems = items.map((item: { productId: string; quantity: number }) => ({
             bundle_id: bundle.id,
             product_id: item.productId,
             quantity: item.quantity
@@ -147,10 +149,8 @@ export async function createBundle(formData: any) {
 }
 
 export async function deleteBundle(bundleId: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { success: false, error: 'Unauthorized' };
-    }
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     // First delete bundle items
     const supabaseAdmin = createAdminClient();
@@ -175,11 +175,9 @@ export async function deleteBundle(bundleId: string) {
     return { success: true };
 }
 
-export async function updateBundle(bundleId: string, formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { success: false, error: 'Unauthorized' };
-    }
+export async function updateBundle(bundleId: string, formData: unknown) {
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const result = BundleSchema.safeParse(formData);
     if (!result.success) {
@@ -213,7 +211,7 @@ export async function updateBundle(bundleId: string, formData: any) {
         .eq('bundle_id', bundleId);
 
     if (items.length > 0) {
-        const bundleItems = items.map((item: any) => ({
+        const bundleItems = items.map((item: { productId: string; quantity: number }) => ({
             bundle_id: bundleId,
             product_id: item.productId,
             quantity: item.quantity
@@ -234,11 +232,9 @@ export async function updateBundle(bundleId: string, formData: any) {
     return { success: true };
 }
 
-export async function createDiscountRule(formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { success: false, error: 'Unauthorized' };
-    }
+export async function createDiscountRule(formData: unknown) {
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const result = DiscountRuleSchema.safeParse(formData);
     if (!result.success) return { success: false, error: 'Invalid data' };
@@ -291,7 +287,7 @@ export async function getBundleById(id: string) {
 export async function addBundleToCart(bundleId: string) {
     console.log('[addBundleToCart] Starting for Bundle:', bundleId);
     const session = await getSession();
-    let userId = session?.userId;
+    const userId = session?.userId;
     console.log('[addBundleToCart] User:', userId);
 
     const supabaseAdmin = createAdminClient();
@@ -318,7 +314,7 @@ export async function addBundleToCart(bundleId: string) {
         .eq('user_id', userId)
         .eq('bundle_id', bundleId);
 
-    const inputs = bundleItems.map((item: any) => {
+    const inputs = bundleItems.map((item: { product_id: string; quantity: number }) => {
         // Find if this product is already in cart for this bundle
         // (Assuming variant is null for bundles for now, as we don't have variant selection in bundle builder yet)
         const existing = existingItems?.find(e => e.product_id === item.product_id);
@@ -378,11 +374,9 @@ export async function addBundleToCart(bundleId: string) {
 
 // --- Discount Rules Actions ---
 
-export async function updateDiscountRule(id: string, formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { success: false, error: 'Unauthorized' };
-    }
+export async function updateDiscountRule(id: string, formData: unknown) {
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const result = DiscountRuleSchema.safeParse(formData);
     if (!result.success) return { success: false, error: 'Invalid data' };
@@ -411,10 +405,8 @@ export async function updateDiscountRule(id: string, formData: any) {
 }
 
 export async function deleteDiscountRule(id: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { success: false, error: 'Unauthorized' };
-    }
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
@@ -434,6 +426,8 @@ export async function deleteDiscountRule(id: string) {
 // --- Promo Code Actions ---
 
 export async function getPromoCodes() {
+    const authError = await verifyAdmin();
+    if (authError) return [];
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
@@ -449,6 +443,8 @@ export async function getPromoCodes() {
 
 export async function getPromoCodeById(id: string) {
     noStore();
+    const authError = await verifyAdmin();
+    if (authError) return null;
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
@@ -463,11 +459,9 @@ export async function getPromoCodeById(id: string) {
     return data;
 }
 
-export async function createPromoCode(formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { success: false, error: 'Unauthorized' };
-    }
+export async function createPromoCode(formData: unknown) {
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const result = PromoCodeSchema.safeParse(formData);
     if (!result.success) return { success: false, error: 'Invalid data' };
@@ -495,11 +489,9 @@ export async function createPromoCode(formData: any) {
     return { success: true };
 }
 
-export async function updatePromoCode(id: string, formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { success: false, error: 'Unauthorized' };
-    }
+export async function updatePromoCode(id: string, formData: unknown) {
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const result = PromoCodeSchema.safeParse(formData);
     if (!result.success) return { success: false, error: 'Invalid data' };
@@ -529,10 +521,8 @@ export async function updatePromoCode(id: string, formData: any) {
 }
 
 export async function deletePromoCode(id: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { success: false, error: 'Unauthorized' };
-    }
+    const authError = await verifyAdmin();
+    if (authError) return authError;
 
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin

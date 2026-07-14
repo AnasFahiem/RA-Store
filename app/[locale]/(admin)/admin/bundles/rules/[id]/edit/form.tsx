@@ -32,7 +32,7 @@ export default function EditRuleForm({ rule }: { rule: any }) {
             router.push('/admin/bundles');
             router.refresh();
         } else {
-            alert('Failed: ' + result.error);
+            alert('Failed: ' + ('error' in result ? result.error : 'Unknown error'));
             setIsSaving(false);
         }
     };
