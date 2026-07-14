@@ -1,0 +1,4 @@
+## 2025-02-14 - Fix IDOR in bundleActions.ts
+**Vulnerability:** The `createBundle` server action in `lib/actions/bundleActions.ts` lacked explicit role-based authorization checks (`admin` or `owner`). Although it called `createAdminClient()`, which bypassed Row Level Security (RLS), it allowed any authenticated user to create bundles, potentially leading to unauthorized data modification (IDOR).
+**Learning:** When using `createAdminClient()` in Next.js Server Actions, RLS is completely bypassed. Therefore, explicit role-based authorization checks must be implemented within the action itself to ensure only authorized users can perform sensitive operations.
+**Prevention:** Always verify user roles (`admin` or `owner`) at the beginning of server actions that modify data, especially when using a service-role Supabase client (`createAdminClient`).

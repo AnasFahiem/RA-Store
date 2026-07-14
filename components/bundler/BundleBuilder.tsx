@@ -117,7 +117,7 @@ export default function BundleBuilder({ products, discountRules, adminBundles }:
             };
 
             const result = await createBundle(bundleData);
-            if (!result.success || !result.bundleId) {
+            if (!result.success || !('bundleId' in result)) {
                 alert('Failed to create bundle');
                 return;
             }

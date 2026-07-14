@@ -94,7 +94,7 @@ export default function EditBundlePage({ params }: { params: Promise<{ id: strin
             router.push('/admin/bundles');
             router.refresh();
         } else {
-            alert('Failed: ' + result.error);
+            alert('Failed: ' + ('error' in result ? result.error : 'Unknown error'));
             setSaving(false);
         }
     };

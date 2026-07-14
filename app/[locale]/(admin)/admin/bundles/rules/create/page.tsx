@@ -27,7 +27,7 @@ export default function CreateRulePage() {
             router.push('/admin/bundles');
             router.refresh();
         } else {
-            alert('Failed: ' + result.error);
+            alert('Failed: ' + ('error' in result ? result.error : 'Unknown error'));
         }
     };
 
