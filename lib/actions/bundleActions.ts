@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth/session';
+import { getSession, verifyAdmin } from '@/lib/auth/session';
 import { z } from 'zod';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -57,6 +57,9 @@ export async function getDiscountRules() {
 
 export async function getDiscountRuleById(id: string) {
     noStore();
+    if (!(await verifyAdmin())) {
+        return null;
+    }
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('discount_rules')
@@ -93,6 +96,9 @@ export async function getAdminBundles() {
 }
 
 export async function createBundle(formData: any) {
+    if (!(await verifyAdmin())) {
+        return { success: false, error: 'Unauthorized' };
+    }
     const session = await getSession();
     const result = BundleSchema.safeParse(formData);
 
@@ -147,10 +153,10 @@ export async function createBundle(formData: any) {
 }
 
 export async function deleteBundle(bundleId: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
+    const session = await getSession();
 
     // First delete bundle items
     const supabaseAdmin = createAdminClient();
@@ -176,10 +182,10 @@ export async function deleteBundle(bundleId: string) {
 }
 
 export async function updateBundle(bundleId: string, formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
+    const session = await getSession();
 
     const result = BundleSchema.safeParse(formData);
     if (!result.success) {
@@ -235,10 +241,10 @@ export async function updateBundle(bundleId: string, formData: any) {
 }
 
 export async function createDiscountRule(formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
+    const session = await getSession();
 
     const result = DiscountRuleSchema.safeParse(formData);
     if (!result.success) return { success: false, error: 'Invalid data' };
@@ -379,10 +385,10 @@ export async function addBundleToCart(bundleId: string) {
 // --- Discount Rules Actions ---
 
 export async function updateDiscountRule(id: string, formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
+    const session = await getSession();
 
     const result = DiscountRuleSchema.safeParse(formData);
     if (!result.success) return { success: false, error: 'Invalid data' };
@@ -411,10 +417,10 @@ export async function updateDiscountRule(id: string, formData: any) {
 }
 
 export async function deleteDiscountRule(id: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
+    const session = await getSession();
 
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
@@ -434,6 +440,9 @@ export async function deleteDiscountRule(id: string) {
 // --- Promo Code Actions ---
 
 export async function getPromoCodes() {
+    if (!(await verifyAdmin())) {
+        return [];
+    }
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
@@ -449,6 +458,9 @@ export async function getPromoCodes() {
 
 export async function getPromoCodeById(id: string) {
     noStore();
+    if (!(await verifyAdmin())) {
+        return null;
+    }
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin
         .from('promo_codes')
@@ -464,10 +476,10 @@ export async function getPromoCodeById(id: string) {
 }
 
 export async function createPromoCode(formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
+    const session = await getSession();
 
     const result = PromoCodeSchema.safeParse(formData);
     if (!result.success) return { success: false, error: 'Invalid data' };
@@ -496,10 +508,10 @@ export async function createPromoCode(formData: any) {
 }
 
 export async function updatePromoCode(id: string, formData: any) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
+    const session = await getSession();
 
     const result = PromoCodeSchema.safeParse(formData);
     if (!result.success) return { success: false, error: 'Invalid data' };
@@ -529,10 +541,10 @@ export async function updatePromoCode(id: string, formData: any) {
 }
 
 export async function deletePromoCode(id: string) {
-    const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
+    if (!(await verifyAdmin())) {
         return { success: false, error: 'Unauthorized' };
     }
+    const session = await getSession();
 
     const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin
