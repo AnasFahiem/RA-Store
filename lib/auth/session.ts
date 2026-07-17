@@ -64,3 +64,8 @@ export async function getSession() {
 
     return { userId: session.userId as string, role: session.role as string };
 }
+
+export async function verifyAdmin() {
+    const session = await getSession();
+    return session?.role === 'admin' || session?.role === 'owner';
+}
