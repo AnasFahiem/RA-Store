@@ -3,6 +3,11 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+if (!process.env.JWT_SECRET) {
+    // 🛡️ Sentinel: Fail-closed on missing secret to prevent zero-length/predictable JWT key generation
+    throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is missing.');
+}
+
 const key = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const cookie = {
