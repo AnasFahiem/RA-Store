@@ -1,0 +1,4 @@
+## 2024-07-22 - [JWT Secret Predictability / Forgery]
+**Vulnerability:** The application was passing `process.env.JWT_SECRET` directly to `TextEncoder().encode()` without checking if it existed. If the environment variable is missing, `TextEncoder().encode()` treats it as `undefined`. On Node.js v22+, this becomes a zero-length array; on older versions, it coerces to the string `"undefined"`. This allows attackers to predictably forge JWT tokens if the secret is missing.
+**Learning:** We must not rely on implicit coercion of environment variables when generating cryptographic keys. A fail-closed approach should be used to prevent application startup or execution if critical secrets are missing.
+**Prevention:** Always explicitly validate the presence of required environment variables for security boundaries (like JWT secrets, API keys, encryption keys) and throw a fatal error immediately if they are absent to ensure a fail-closed posture.
