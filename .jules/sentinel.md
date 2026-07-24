@@ -1,0 +1,4 @@
+## 2024-05-24 - [CRITICAL] Predictable JWT Key Generation
+**Vulnerability:** The JWT signing logic lacks validation for `process.env.JWT_SECRET` before passing it to `TextEncoder().encode()`. If `JWT_SECRET` is undefined, `TextEncoder().encode()` generates a zero-length array (Node 22+) or the string 'undefined', leading to predictable JWT keys and critical key forgery vulnerabilities.
+**Learning:** Node.js (v22+) evaluates `undefined` to a zero-length array when passed to `TextEncoder().encode()`, whereas older versions coerced it to a predictable 9-byte string 'undefined'. Unchecked environment variables can silently default to these insecure predictable values rather than throwing errors.
+**Prevention:** Always explicitly validate the presence of critical security environment variables (like `JWT_SECRET`) before using them. Fail closed by throwing an error if they are missing.
