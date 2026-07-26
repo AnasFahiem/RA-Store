@@ -1,0 +1,4 @@
+## 2026-07-26 - Predictable JWT Key Generation
+**Vulnerability:** The JWT signing logic in `lib/auth/session.ts` passes `process.env.JWT_SECRET` directly to `TextEncoder().encode()` without validating its presence. If the environment variable is missing, `TextEncoder().encode(undefined)` evaluates to a zero-length array (Node 22+) or the string 'undefined' (older Node versions), resulting in a predictable symmetric key. This allows attackers to forge valid JWTs and bypass authentication.
+**Learning:** Next.js static builds or misconfigured environments can easily omit environment variables. Failing to explicitly check for their presence before cryptographic operations leads to silently insecure fallbacks rather than loud failures.
+**Prevention:** Always enforce fail-closed validation for critical cryptographic secrets. Explicitly check if the environment variable is defined and throw a fatal error if it is missing before using it for key generation.
