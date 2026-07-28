@@ -3,6 +3,12 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
+// Security check: If JWT_SECRET is missing, TextEncoder().encode(undefined) creates
+// a zero-length byte array in newer Node versions, making JWT signatures predictable
+// and forgeable. Fail-secure by throwing an error if the secret is not configured.
+if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is missing.');
+}
 const key = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const cookie = {

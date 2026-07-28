@@ -1,0 +1,4 @@
+## 2024-07-28 - Missing Validation for JWT_SECRET
+**Vulnerability:** Missing check for `process.env.JWT_SECRET` in `lib/auth/session.ts` before creating the JWT signature key with `TextEncoder().encode()`. In newer Node versions, passing `undefined` creates an empty byte array, which makes the cryptographic key predictable and allows malicious actors to forge valid JWT tokens.
+**Learning:** Node.js (v22+) evaluates `undefined` to a zero-length array rather than the string "undefined", leading to empty keys and deterministic signatures when secret variables are accidentally missing. We cannot assume environment variables always exist.
+**Prevention:** Always validate critical environment variables, especially secrets and API keys, and fail-closed by throwing an error or crashing the process if they are absent.
