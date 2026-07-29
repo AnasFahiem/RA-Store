@@ -56,14 +56,14 @@ function generateEmailHtml(title: string, orderId: string, message: string, deta
 async function sendEmail(to: string | string[], subject: string, html: string, label: string) {
     try {
         await transporter.sendMail({
-            from: \`"RA Store" <\${process.env.SMTP_USER}>\`,
+            from: `"RA Store" <${process.env.SMTP_USER}>`,
             to,
             subject,
             html,
         });
-        console.log(\`\${label} email sent to \${Array.isArray(to) ? to.join(', ') : to}\`);
+        console.log(`${label} email sent to ${Array.isArray(to) ? to.join(', ') : to}`);
     } catch (e) {
-        console.error(\`Failed to send \${label} email:\`, e);
+        console.error(`Failed to send ${label} email:`, e);
     }
 }
 
@@ -82,37 +82,37 @@ export async function sendOrderEmail({ order, items, adminEmails }: { order: any
     let addressString = 'N/A';
     if (shippingAddress) {
         const { street, city } = shippingAddress;
-        if (street || city) addressString = \`\${street || ''}, \${city || ''}\`;
+        if (street || city) addressString = `${street || ''}, ${city || ''}`;
         else if (typeof order.shipping_address === 'string') addressString = order.shipping_address;
     }
 
-    const itemsHtml = items.map(i => \`
+    const itemsHtml = items.map(i => `
     <tr style="border-bottom: 1px solid #333;">
-        <td style="padding: 12px; color: #e5e5e5;">\${i.name} <span style="color: #888;">\${i.variant ? \`(\${i.variant})\` : ''}</span></td>
-        <td style="padding: 12px; color: #e5e5e5; text-align: center;">\${i.quantity}</td>
-        <td style="padding: 12px; color: #e5e5e5; text-align: right;">\${formatCurrency(i.price)}</td>
-    </tr>\`).join('');
+        <td style="padding: 12px; color: #e5e5e5;">${i.name} <span style="color: #888;">${i.variant ? `(${i.variant})` : ''}</span></td>
+        <td style="padding: 12px; color: #e5e5e5; text-align: center;">${i.quantity}</td>
+        <td style="padding: 12px; color: #e5e5e5; text-align: right;">${formatCurrency(i.price)}</td>
+    </tr>`).join('');
 
-    const detailsHtml = \`
-        <p><strong>Customer:</strong> \${customerName}</p>
-        <p><strong>Email:</strong> \${customerEmail}</p>
-        <p><strong>Phone:</strong> \${customerPhone}</p>
-        <p><strong>Address:</strong> \${addressString}</p>
-    \`;
+    const detailsHtml = `
+        <p><strong>Customer:</strong> ${customerName}</p>
+        <p><strong>Email:</strong> ${customerEmail}</p>
+        <p><strong>Phone:</strong> ${customerPhone}</p>
+        <p><strong>Address:</strong> ${addressString}</p>
+    `;
 
-    const tableHtml = \`
+    const tableHtml = `
         <table border="0" cellpadding="0" cellspacing="0">
             <thead><tr><th>Item</th><th style="text-align: center;">Qty</th><th style="text-align: right;">Price</th></tr></thead>
-            <tbody>\${itemsHtml}</tbody>
+            <tbody>${itemsHtml}</tbody>
         </table>
-        <div class="total"><strong>Total: \${formatCurrency(order.total_amount)}</strong></div>
-    \`;
+        <div class="total"><strong>Total: ${formatCurrency(order.total_amount)}</strong></div>
+    `;
 
     // Admin email
     await sendEmail(
         recipients, 
-        \`[New Order] #\${order.id.slice(0, 8)} from \${customerName}\`, 
-        generateEmailHtml('New Order Received', order.id, \`A new order has been placed by <strong>\${customerName}</strong>.\`, detailsHtml, tableHtml),
+        `[New Order] #${order.id.slice(0, 8)} from ${customerName}`, 
+        generateEmailHtml('New Order Received', order.id, `A new order has been placed by <strong>${customerName}</strong>.`, detailsHtml, tableHtml),
         'Admin'
     );
 
@@ -120,8 +120,8 @@ export async function sendOrderEmail({ order, items, adminEmails }: { order: any
     if (customerEmail && customerEmail !== 'No Email') {
         await sendEmail(
             customerEmail, 
-            \`Order Confirmation #\${order.id.slice(0, 8)} - RA Store\`, 
-            generateEmailHtml('Thank You!', order.id, \`Hi \${customerName},<br>We've received your order and are finding the best gear for you.\`, detailsHtml, tableHtml),
+            `Order Confirmation #${order.id.slice(0, 8)} - RA Store`, 
+            generateEmailHtml('Thank You!', order.id, `Hi ${customerName},<br>We've received your order and are finding the best gear for you.`, detailsHtml, tableHtml),
             'Customer'
         );
     }
@@ -134,27 +134,27 @@ export async function sendStatusUpdateEmail({ order, newStatus }: { order: any; 
     let title = 'Order Update';
     let message = '';
     switch (newStatus.toLowerCase()) {
-        case 'processing': title = 'Order Processing'; message = \`Hi \${customerName},<br>Your order is now being processed. We are getting your gear ready!\`; break;
-        case 'shipped': title = 'Order Shipped'; message = \`Hi \${customerName},<br>Great news! Your order has been shipped and is on its way.\`; break;
-        case 'delivered': title = 'Order Delivered'; message = \`Hi \${customerName},<br>Your order has been delivered. We hope you enjoy your purchase!\`; break;
-        case 'cancelled': title = 'Order Cancelled'; message = \`Hi \${customerName},<br>Your order has been cancelled. If you have any questions, please contact support.\`; break;
-        default: title = 'Order Status Update'; message = \`Hi \${customerName},<br>Your order status has been updated to: <strong>\${newStatus}</strong>.\`;
+        case 'processing': title = 'Order Processing'; message = `Hi ${customerName},<br>Your order is now being processed. We are getting your gear ready!`; break;
+        case 'shipped': title = 'Order Shipped'; message = `Hi ${customerName},<br>Great news! Your order has been shipped and is on its way.`; break;
+        case 'delivered': title = 'Order Delivered'; message = `Hi ${customerName},<br>Your order has been delivered. We hope you enjoy your purchase!`; break;
+        case 'cancelled': title = 'Order Cancelled'; message = `Hi ${customerName},<br>Your order has been cancelled. If you have any questions, please contact support.`; break;
+        default: title = 'Order Status Update'; message = `Hi ${customerName},<br>Your order status has been updated to: <strong>${newStatus}</strong>.`;
     }
 
-    const detailsHtml = \`
-        <p><strong>Status:</strong> <span style="color: #facc15; text-transform: uppercase;">\${newStatus}</span></p>
-        <p><strong>Total:</strong> \${formatCurrency(order.total_amount)}</p>
-    \`;
-    const actionHtml = \`
+    const detailsHtml = `
+        <p><strong>Status:</strong> <span style="color: #facc15; text-transform: uppercase;">${newStatus}</span></p>
+        <p><strong>Total:</strong> ${formatCurrency(order.total_amount)}</p>
+    `;
+    const actionHtml = `
         <div style="text-align: center;">
-            <a href="\${process.env.NEXT_PUBLIC_BASE_URL || 'https://ra-store.com'}/account/orders" class="btn">View Order</a>
+            <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://ra-store.com'}/account/orders" class="btn">View Order</a>
         </div>
-    \`;
+    `;
 
     if (customerEmail && customerEmail !== 'No Email') {
         await sendEmail(
             customerEmail, 
-            \`\${title} - Order #\${order.id.slice(0, 8)}\`, 
+            `${title} - Order #${order.id.slice(0, 8)}`, 
             generateEmailHtml(title, order.id, message, detailsHtml, actionHtml),
             'Status update'
         );
