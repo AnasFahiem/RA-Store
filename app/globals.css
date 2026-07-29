@@ -16,36 +16,8 @@
 }
 
 [dir="rtl"] {
-  --font-inter: var(--font-algemahalhoda);
-  --font-oswald: var(--font-algemahalhoda);
-}
-
-/* Base heading styles for RTL to ensure they use a bolder look */
-[dir="rtl"] h1,
-[dir="rtl"] h2,
-[dir="rtl"] h3,
-[dir="rtl"] h4,
-[dir="rtl"] h5,
-[dir="rtl"] h6 {
-  font-weight: 700;
-}
-
-/* Since the font lacks a native bold file, simulate a strong bold using text-stroke */
-[dir="rtl"] h1,
-[dir="rtl"] h2,
-[dir="rtl"] h3,
-[dir="rtl"] h4,
-[dir="rtl"] h5,
-[dir="rtl"] h6,
-[dir="rtl"] .font-bold {
-  -webkit-text-stroke: 0.75px currentColor;
-  text-shadow: 0 0 1px currentColor;
-}
-
-[dir="rtl"] .font-extrabold,
-[dir="rtl"] .font-black {
-  -webkit-text-stroke: 1.5px currentColor;
-  text-shadow: 0 0 2px currentColor;
+  --font-inter: var(--font-changa);
+  --font-oswald: var(--font-changa);
 }
 
 :root {
@@ -88,10 +60,6 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter), sans-serif;
   -webkit-font-smoothing: antialiased;
-}
-
-[dir="rtl"] body {
-  font-family: var(--font-algemahalhoda), sans-serif;
 }
 
 /* Utility class to hide scrollbar but allow scrolling */
