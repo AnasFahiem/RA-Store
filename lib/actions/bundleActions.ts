@@ -94,10 +94,6 @@ export async function getAdminBundles() {
 
 export async function createBundle(formData: any) {
     const session = await getSession();
-    if (session?.role !== 'admin' && session?.role !== 'owner') {
-        return { success: false, error: 'Unauthorized' };
-    }
-
     const result = BundleSchema.safeParse(formData);
 
     if (!result.success) {
@@ -105,8 +101,69 @@ export async function createBundle(formData: any) {
     }
 
     const { name, description, type, items, priceOverride } = result.data;
-    const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
+    const isAdmin = session?.role === 'admin' || session?.role === 'owner';
 
+    // Only logged-in users can create bundles
+    if (!session?.userId) {
+        return { success: false, error: 'Please login to create bundles' };
+    }
+
+    // Security check: non-admins can only create user_custom bundles
+    if (!isAdmin && type !== 'user_custom') {
+        return { success: false, error: 'Unauthorized: Can only create custom bundles' };
+    }
+
+    let finalPriceOverride = priceOverride;
+
+    if (!isAdmin) {
+        // Enforce server-side pricing for non-admins to prevent price tampering
+        const supabaseAdmin = createAdminClient();
+        const productIds = items.map((i: any) => i.productId);
+        const { data: products } = await supabaseAdmin.from('products').select('id, base_price, category').in('id', productIds);
+        
+        if (!products || products.length === 0) {
+            return { success: false, error: 'Products not found' };
+        }
+
+        let subtotal = 0;
+        let totalQty = 0;
+        const enrichedItems = items.map((item: any) => {
+            const prod = products.find(p => p.id === item.productId);
+            if (prod) {
+                subtotal += prod.base_price * item.quantity;
+                totalQty += item.quantity;
+            }
+            return { ...item, category: prod?.category };
+        });
+
+        const discountRules = await getDiscountRules();
+        const sortedRules = [...discountRules].sort((a, b) => b.min_quantity - a.min_quantity);
+        
+        let activeDiscount = null;
+        for (const rule of sortedRules) {
+            if (totalQty >= rule.min_quantity) {
+                if (rule.required_category) {
+                    const hasCategory = enrichedItems.some(i => i.category === rule.required_category);
+                    if (!hasCategory) continue;
+                }
+                activeDiscount = rule;
+                break;
+            }
+        }
+
+        let discountAmount = 0;
+        if (activeDiscount) {
+            if (activeDiscount.discount_type === 'percentage') {
+                discountAmount = subtotal * (activeDiscount.discount_value / 100);
+            } else {
+                discountAmount = activeDiscount.discount_value;
+            }
+        }
+
+        finalPriceOverride = subtotal - discountAmount;
+    }
+
+    const slug = name.toLowerCase().replaceAll(' ', '-') + '-' + Date.now();
     const supabaseAdmin = createAdminClient();
 
     const { data: bundle, error: bundleError } = await supabaseAdmin
@@ -117,7 +174,7 @@ export async function createBundle(formData: any) {
             slug,
             type,
             image: result.data.image,
-            price_override: priceOverride,
+            price_override: finalPriceOverride,
             created_by: session?.userId || null
         })
         .select()

@@ -15,6 +15,11 @@
   --font-heading: var(--font-oswald);
 }
 
+[dir="rtl"] {
+  --font-inter: var(--font-algemahalhoda);
+  --font-oswald: var(--font-algemahalhoda);
+}
+
 :root {
   /* Light Mode Defaults */
   --background: #ffffff;
@@ -55,6 +60,10 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter), sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+[dir="rtl"] body {
+  font-family: var(--font-algemahalhoda), sans-serif;
 }
 
 /* Utility class to hide scrollbar but allow scrolling */

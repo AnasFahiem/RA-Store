@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import { Inter, Oswald } from "next/font/google";
+import localFont from 'next/font/local';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import "../globals.css";
 import { CartProvider } from "@/lib/context/CartContext";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { getCartAction } from "@/lib/actions/cart";
+
+const alGemahAlhoda = localFont({
+  src: '../../public/fonts/AlGemahAlhoda.ttf',
+  variable: '--font-algemahalhoda',
+  display: 'swap',
+});
 
 const inter = Inter({
   variable: "--font-inter",
@@ -41,7 +48,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${oswald.variable} antialiased`}
+        className={`${inter.variable} ${oswald.variable} ${alGemahAlhoda.variable} antialiased`}
       >
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider
