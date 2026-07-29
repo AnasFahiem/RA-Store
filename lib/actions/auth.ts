@@ -95,7 +95,7 @@ export async function signup(prevState: any, formData: FormData) {
             data: {
                 name: name, // This will be used by the trigger to populate public.users
             },
-            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/callback`,
         },
     });
 

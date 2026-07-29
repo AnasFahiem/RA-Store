@@ -64,3 +64,11 @@ export async function getSession() {
 
     return { userId: session.userId as string, role: session.role as string };
 }
+
+export async function requireAdmin() {
+    const session = await verifySession();
+    if (session.role !== 'admin' && session.role !== 'owner') {
+        throw new Error('Unauthorized');
+    }
+    return session;
+}

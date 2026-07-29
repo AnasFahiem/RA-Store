@@ -180,15 +180,7 @@ export async function placeOrder(formData: any) {
         .select()
         .single();
 
-    if (promoCodeId && !orderError) {
-        // Increment usage count safely using a raw query or simple update if RPC not set up
-        const { error: updateError } = await supabaseAdmin
-            .from('promo_codes')
-            .update({ used_count: promoCodeId ? ((await supabaseAdmin.from('promo_codes').select('used_count').eq('id', promoCodeId).single()).data?.used_count || 0) + 1 : 0 })
-            .eq('id', promoCodeId);
 
-        if (updateError) console.error('Failed to update promo usage count:', updateError);
-    }
 
     if (orderError) {
         console.error('Order creation failed:', orderError);

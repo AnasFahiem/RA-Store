@@ -22,6 +22,12 @@ export async function uploadImage(formData: FormData) {
             console.error('Server Action: No file found in FormData');
             return { error: 'No file provided' };
         }
+        
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        if (file.size > MAX_FILE_SIZE) {
+            console.error(`Server Action: File size ${file.size} exceeds limit of ${MAX_FILE_SIZE}`);
+            return { error: 'File size exceeds 10MB limit' };
+        }
         console.log(`Server Action: File received - Name: ${file.name}, Size: ${file.size}, Type: ${file.type}`);
 
         const supabaseAdmin = createAdminClient();

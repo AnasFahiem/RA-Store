@@ -8,21 +8,27 @@ import { motion, useAnimation } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import BackgroundPattern from '@/components/shared/BackgroundPattern';
 
+import { useSearchParams } from 'next/navigation';
+
 export default function LoginPage() {
     const [state, action, isPending] = useActionState(login, null);
+    const searchParams = useSearchParams();
+    const isVerified = searchParams.get('verified') === 'true';
+    const authError = searchParams.get('error');
+
     const t = useTranslations('Auth');
     const [showPassword, setShowPassword] = useState(false);
     const controls = useAnimation();
 
     // Trigger shake animation when there is an error
     useEffect(() => {
-        if (state?.error) {
+        if (state?.error || authError) {
             controls.start({
                 x: [0, -10, 10, -10, 10, 0],
                 transition: { duration: 0.5 }
             });
         }
-    }, [state?.error, controls]);
+    }, [state?.error, authError, controls]);
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
@@ -50,6 +56,24 @@ export default function LoginPage() {
                             {t('enterCredentials')}
                         </p>
                     </div>
+
+                    {isVerified && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-3 text-green-500"
+                        >
+                            <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                            <p className="text-sm font-medium">Email verified successfully! You can now log in.</p>
+                        </motion.div>
+                    )}
+
+                    {authError && (
+                        <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-red-400 text-sm">
+                            <span className="block w-1.5 h-1.5 rounded-full bg-red-500" />
+                            {authError === 'auth_code_error' ? 'Invalid or expired verification link.' : 'Authentication error.'}
+                        </div>
+                    )}
 
                     <form
                         action={action}
