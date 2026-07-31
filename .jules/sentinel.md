@@ -1,0 +1,4 @@
+## 2024-07-31 - [Predictable JWT Key Generation]
+**Vulnerability:** The JWT key was generated using `new TextEncoder().encode(process.env.JWT_SECRET)` without explicitly verifying if `process.env.JWT_SECRET` exists. In some Node.js versions (v22+), missing variables evaluate to an empty byte array, and in older versions to a predictable string like 'undefined', resulting in a predictable symmetric signing key and potential key forgery.
+**Learning:** `process.env` properties can be undefined. When used in cryptographic functions like `TextEncoder().encode()`, `undefined` values can degrade security heavily, leading to predictable keys. Cryptographic dependencies should always fail-closed.
+**Prevention:** Always validate environment variables used for security (like `JWT_SECRET`) to ensure they exist and have a minimum length before initializing cryptographic functions. Use strict assertions or validation libraries (e.g., Zod) on app startup.
